@@ -1,0 +1,13 @@
+package com.clinic.api;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ClinicaDigitalApiApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(ClinicaDigitalApiApplication.class, args);
+    }
+
+}
