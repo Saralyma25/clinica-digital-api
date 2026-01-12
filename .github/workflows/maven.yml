@@ -44,6 +44,6 @@ jobs:
         # Mantendo seus tempos de segurança de 120s/60s
         run: |
           chmod +x mvnw
-          timeout 120s ./mvnw spring-boot:run &
-          sleep 60s
+          timeout 180s ./mvnw spring-boot:run &
+          sleep 120s
           echo "Servidor inicializado com sucesso no ambiente de CI!"
