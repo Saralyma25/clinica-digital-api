@@ -21,6 +21,6 @@ jobs:
           cache: maven
 
       - name: Build with Maven
-        # Roda os testes e faz o build.
-        # Se algum teste falhar, o GitHub avisa.
-        run: ./mvnw clean verify
+        run: |
+          chmod +x mvnw
+          ./mvnw clean verify
