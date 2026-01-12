@@ -20,15 +20,13 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Build and Test with Maven
-        # O 'clean verify' garante que o código compila, os testes passam e o JAR é gerado
+      - name: Build with Maven
         run: |
           chmod +x mvnw
           ./mvnw clean verify
 
-      - name: Smoke Test - Spring Boot Run
-        # Este passo simula a execução real do servidor por 25 segundos
-        # Se houver erro de configuração (como o Hibernate falhando), o build ficará vermelho
+      - name: Smoke Test - Boot Run
+        # Este passo é o que estava faltando no seu log anterior
         run: |
           timeout 120s ./mvnw spring-boot:run &
           sleep 60s
