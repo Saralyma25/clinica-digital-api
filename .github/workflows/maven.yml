@@ -7,9 +7,9 @@ on:
     branches: [ "main" ]
 
 jobs:
+  # PRIMEIRO JOB: Compilação e Testes Unitários
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -20,14 +20,30 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Build with Maven
+      - name: Build and Test
         run: |
           chmod +x mvnw
           ./mvnw clean verify
 
+  # SEGUNDO JOB: Validação de Execução do Servidor
+  smoke-test-boot:
+    name: Boot Run Verification
+    needs: build # Este job só começa se o 'build' terminar com sucesso
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
       - name: Smoke Test - Boot Run
-        # Este passo é o que estava faltando no seu log anterior
+        # Mantendo seus tempos de segurança de 120s/60s
         run: |
+          chmod +x mvnw
           timeout 120s ./mvnw spring-boot:run &
           sleep 60s
           echo "Servidor inicializado com sucesso no ambiente de CI!"
