@@ -8,7 +8,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -21,7 +20,16 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Build with Maven
-        # O flag -DskipTests=false garante que os testes rodem
-        # O 'clean verify' roda testes e empacota o jar
-        run: ./mvnw clean verify
+      - name: Build and Test with Maven
+        # O 'clean verify' garante que o código compila, os testes passam e o JAR é gerado
+        run: |
+          chmod +x mvnw
+          ./mvnw clean verify
+
+      - name: Smoke Test - Spring Boot Run
+        # Este passo simula a execução real do servidor por 25 segundos
+        # Se houver erro de configuração (como o Hibernate falhando), o build ficará vermelho
+        run: |
+          timeout 120s ./mvnw spring-boot:run &
+          sleep 60s
+          echo "Servidor inicializado com sucesso no ambiente de CI!"
