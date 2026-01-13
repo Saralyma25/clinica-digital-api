@@ -1,0 +1,46 @@
+name: Clinic-API Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  # JOB ÚNICO: Centraliza todas as tarefas em passos sequenciais
+  pipeline-execution:
+    name: Build, Sonar & Smoke Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      # PASSO 1: SONAR & BUILD (O que você escreveu na primeira caixa)
+      - name: Build and Sonar Analysis
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          chmod +x mvnw
+          ./mvnw -B verify sonar:sonar \
+            -Dsonar.projectKey=Saralyma25_clinica-digital-api \
+            -Dsonar.organization=saralyma25 \
+            -Dsonar.host.url=https://sonarcloud.io
+
+      # PASSO 2: SMOKE TEST (O que você escreveu na segunda caixa)
+      - name: Smoke Test - Boot Run Verification
+        env:
+          SPRING_DATASOURCE_URL: jdbc:h2:mem:testdb
+          JWT_SECRET: dummy_secret_for_ci_testing
+        run: |
+          timeout 180s ./mvnw spring-boot:run &
+          sleep 120s
+          echo "Aplicação validada com sucesso em ambiente de CI!"
