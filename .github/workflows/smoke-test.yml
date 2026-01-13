@@ -1,0 +1,30 @@
+name: CD - Smoke Test
+
+on:
+  workflow_run:
+    workflows: ["CI - Build & Sonar"]
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  smoke-test-boot:
+    name: Boot Run Verification
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    env:
+      SPRING_DATASOURCE_URL: jdbc:h2:mem:testdb
+      JWT_SECRET: dummy_secret_for_ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Smoke Test - Boot Run
+        run: |
+          chmod +x mvnw
+          timeout 180s ./mvnw spring-boot:run &
+          sleep 120s
+          echo "Servidor validado com sucesso no GitHub Actions!"
