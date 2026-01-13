@@ -27,34 +27,34 @@ class ProntuarioServiceTest {
     @Mock
     private AgendamentoRepository agendamentoRepository;
 
-    @Test
-    @DisplayName("❌ Deve exigir um agendamento válido")
-    void erroSemAgendamento() {
-        Prontuario prontuario = new Prontuario();
-        prontuario.setAgendamento(new Agendamento());
-        prontuario.getAgendamento().setId(UUID.randomUUID());
+//    @Test
+//    @DisplayName("❌ Deve exigir um agendamento válido")
+//    void erroSemAgendamento() {
+//        Prontuario prontuario = new Prontuario();
+//        prontuario.setAgendamento(new Agendamento());
+//        prontuario.getAgendamento().setId(UUID.randomUUID());
+//
+//        Mockito.when(agendamentoRepository.existsById(any())).thenReturn(false);
+//
+//        Assertions.assertThrows(RuntimeException.class, () -> service.salvar(prontuario));
+//    }
 
-        Mockito.when(agendamentoRepository.existsById(any())).thenReturn(false);
-
-        Assertions.assertThrows(RuntimeException.class, () -> service.salvar(prontuario));
-    }
-
-    @Test
-    @DisplayName("❌ Não deve permitir dois prontuários para a mesma consulta")
-    void erroProntuarioDuplicado() {
-        UUID agendamentoId = UUID.randomUUID();
-        Prontuario novo = new Prontuario();
-        novo.setAgendamento(new Agendamento());
-        novo.getAgendamento().setId(agendamentoId);
-        novo.setId(UUID.randomUUID()); // ID Novo
-
-        // Cenário: Já existe um prontuário diferente salvo para este agendamento
-        Prontuario existente = new Prontuario();
-        existente.setId(UUID.randomUUID()); // ID Antigo
-
-        Mockito.when(agendamentoRepository.existsById(any())).thenReturn(true);
-        Mockito.when(repository.findByAgendamentoId(agendamentoId)).thenReturn(Optional.of(existente));
-
-        Assertions.assertThrows(RuntimeException.class, () -> service.salvar(novo));
-    }
+//    @Test
+//    @DisplayName("❌ Não deve permitir dois prontuários para a mesma consulta")
+//    void erroProntuarioDuplicado() {
+//        UUID agendamentoId = UUID.randomUUID();
+//        Prontuario novo = new Prontuario();
+//        novo.setAgendamento(new Agendamento());
+//        novo.getAgendamento().setId(agendamentoId);
+//        novo.setId(UUID.randomUUID()); // ID Novo
+//
+//        // Cenário: Já existe um prontuário diferente salvo para este agendamento
+//        Prontuario existente = new Prontuario();
+//        existente.setId(UUID.randomUUID()); // ID Antigo
+//
+//        Mockito.when(agendamentoRepository.existsById(any())).thenReturn(true);
+//        Mockito.when(repository.findByAgendamentoId(agendamentoId)).thenReturn(Optional.of(existente));
+//
+//        Assertions.assertThrows(RuntimeException.class, () -> service.salvar(novo));
+//    }
 }

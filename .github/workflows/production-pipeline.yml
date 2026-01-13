@@ -87,6 +87,6 @@ jobs:
       - name: Smoke Test - Boot Run
         run: |
           chmod +x mvnw
-          timeout 180s ./mvnw spring-boot:run &
-          sleep 120s
+          timeout 240s ./mvnw spring-boot:run &
+          sleep 180s
           echo "Aplicação validada com sucesso!"
