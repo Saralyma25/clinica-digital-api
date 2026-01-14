@@ -8,7 +8,11 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.Objects;
 
-@Table(name = "tb_paciente")
+@Table(name = "tb_paciente", uniqueConstraints = {
+        @UniqueConstraint(columnNames = "cpf"),
+        @UniqueConstraint(columnNames = "email"),
+        @UniqueConstraint(columnNames = "telefone")
+})
 @Entity(name = "Paciente")
 public class Paciente {
 
@@ -19,14 +23,17 @@ public class Paciente {
     @Column(nullable = false)
     private String nome;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true) // Regra: Email único
     private String email;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = false) // Regra: permite o mesmo telefone
     private String telefone;
 
-    @Column(length = 14)
+    @Column(length = 14, unique = true) // Regra: CPF único
     private String cpf;
+
+    @Column(name = "data_nascimento", nullable = false) // Necessário para cálculo de idade
+    private LocalDate dataNascimento;
 
     @ManyToOne
     @JoinColumn(name = "plano_id")
@@ -48,25 +55,10 @@ public class Paciente {
     @Column(name = "data_cadastro")
     private LocalDateTime dataCadastro;
 
-    // --- CONSTRUTOR OBRIGATÓRIO (O que faltava!) ---
     public Paciente() {
     }
 
-    // Outros construtores úteis
-    public Paciente(String nome, String email, String telefone, String cpf, Plano plano) {
-        this.nome = nome;
-        this.email = email;
-        this.telefone = telefone;
-        this.cpf = cpf;
-        this.plano = plano;
-    }
-
-    @PrePersist
-    public void prePersist() {
-        if(this.dataCadastro == null) this.dataCadastro = LocalDateTime.now();
-    }
-
-    // --- Getters e Setters ---
+    // --- Getters e Setters Manuais (Mantendo o padrão Mateus) ---
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -81,6 +73,9 @@ public class Paciente {
 
     public String getCpf() { return cpf; }
     public void setCpf(String cpf) { this.cpf = cpf; }
+
+    public LocalDate getDataNascimento() { return dataNascimento; }
+    public void setDataNascimento(LocalDate dataNascimento) { this.dataNascimento = dataNascimento; }
 
     public Plano getPlano() { return plano; }
     public void setPlano(Plano plano) { this.plano = plano; }
@@ -100,7 +95,11 @@ public class Paciente {
     public LocalDateTime getDataCadastro() { return dataCadastro; }
     public void setDataCadastro(LocalDateTime dataCadastro) { this.dataCadastro = dataCadastro; }
 
-    // --- Equals e HashCode (Importantíssimo para o Banco) ---
+    @PrePersist
+    public void prePersist() {
+        if(this.dataCadastro == null) this.dataCadastro = LocalDateTime.now();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -110,7 +109,5 @@ public class Paciente {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
+    public int hashCode() { return Objects.hash(id); }
 }

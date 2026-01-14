@@ -1,80 +1,115 @@
 package com.clinic.api.prontuario;
 
 import com.clinic.api.agendamento.AgendamentoRepository;
+import com.clinic.api.paciente.Paciente;
+import com.clinic.api.paciente.PacienteRepository;
+import com.clinic.api.prontuario.dto.FolhaDeRostoDTO;
+import com.clinic.api.prontuario.dto.ResumoAtendimentoDTO;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.List;
 import java.util.UUID;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ProntuarioService {
 
     private final ProntuarioRepository repository;
     private final AgendamentoRepository agendamentoRepository;
+    private final DadosClinicosFixosRepository dadosFixosRepository;
+    private final PacienteRepository pacienteRepository;
+    private final DeepSeekService deepSeekService; // Injeção da IA
 
-    public ProntuarioService(ProntuarioRepository repository, AgendamentoRepository agendamentoRepository) {
+    public ProntuarioService(ProntuarioRepository repository,
+                             AgendamentoRepository agendamentoRepository,
+                             DadosClinicosFixosRepository dadosFixosRepository,
+                             PacienteRepository pacienteRepository,
+                             DeepSeekService deepSeekService) {
         this.repository = repository;
         this.agendamentoRepository = agendamentoRepository;
+        this.dadosFixosRepository = dadosFixosRepository;
+        this.pacienteRepository = pacienteRepository;
+        this.deepSeekService = deepSeekService;
     }
 
-//    public Prontuario salvar(Prontuario prontuario) {
-//        // Regra: O Agendamento existe?
-//        if (prontuario.getAgendamento() == null ||
-//                !agendamentoRepository.existsById(prontuario.getAgendamento().getId())) {
-//            throw new RuntimeException("Agendamento inválido. O prontuário deve ser vinculado a uma consulta.");
-//        }
-//
-//        // Regra: Já existe prontuário para essa consulta? (1 pra 1)
-//        Optional<Prontuario> existente = repository.findByAgendamentoId(prontuario.getAgendamento().getId());
-//        if (existente.isPresent() && !existente.get().getId().equals(prontuario.getId())) {
-//            throw new RuntimeException("Já existe um prontuário para este agendamento.");
-//        }
-//
-//        return repository.save(prontuario);
-//    }
-
-//    public Prontuario buscarPorAgendamento(UUID agendamentoId) {
-//        return repository.findByAgendamentoId(agendamentoId)
-//                .orElseThrow(() -> new RuntimeException("Prontuário não encontrado para este agendamento."));
-//    }
-
-    // --- SALVAR (Cria uma nova folha na pasta) ---
-    public Prontuario salvar(Prontuario prontuario) {
-        // 1. Valida se o Agendamento existe
-        if (prontuario.getAgendamento() == null ||
-                !agendamentoRepository.existsById(prontuario.getAgendamento().getId())) {
-            throw new RuntimeException("Agendamento inválido. O prontuário deve ser vinculado a uma consulta real.");
+    // --- SALVAR (Folha de Atendimento com Trava de Escrita) ---
+    @Transactional
+    public Prontuario salvar(Prontuario prontuario, UUID idMedicoLogado) {
+        // Validação de Segurança: Um médico não pode alterar folha de outro colega
+        if (!prontuario.getAgendamento().getMedico().getId().equals(idMedicoLogado)) {
+            throw new RuntimeException("Segurança: Você só pode registrar ou editar prontuários de seus próprios atendimentos.");
         }
 
-        // 2. Trava de Unicidade: Uma consulta não pode ter dois prontuários
-        // Isso protege contra erros de sistema (clicar duas vezes no botão salvar)
-        Optional<Prontuario> existente = repository.findByAgendamentoId(prontuario.getAgendamento().getId());
+        // Validação de Existência do Agendamento
+        if (prontuario.getAgendamento() == null || !agendamentoRepository.existsById(prontuario.getAgendamento().getId())) {
+            throw new RuntimeException("Agendamento inválido.");
+        }
 
-        // Se já existe E não é o mesmo que estamos editando agora... ERRO.
+        // Trava de Unicidade: Cada consulta gera apenas uma folha no prontuário
+        Optional<Prontuario> existente = repository.findByAgendamentoId(prontuario.getAgendamento().getId());
         if (existente.isPresent() && !existente.get().getId().equals(prontuario.getId())) {
-            throw new RuntimeException("Já existe um prontuário registrado para este agendamento (ID: " +
-                    prontuario.getAgendamento().getId() + "). Edite o existente.");
+            throw new RuntimeException("Já existe um prontuário para esta consulta.");
         }
 
         return repository.save(prontuario);
     }
 
-    // --- BUSCAR UM ESPECÍFICO (Ler a folha de hoje) ---
-    public Prontuario buscarPorAgendamento(UUID agendamentoId) {
-        return repository.findByAgendamentoId(agendamentoId)
-                .orElseThrow(() -> new RuntimeException("Prontuário não encontrado para este agendamento."));
+    // --- A CAPA DA PASTA: Gerar Folha de Rosto com IA e Histórico ---
+    public FolhaDeRostoDTO obterFolhaDeRosto(UUID pacienteId) {
+        // 1. Busca os dados cadastrais do Paciente
+        Paciente paciente = pacienteRepository.findById(pacienteId)
+                .orElseThrow(() -> new RuntimeException("Paciente não encontrado."));
+
+        // 2. Busca Dados Fixos (Comorbidades/Doenças Preexistentes e Alergias)
+        DadosClinicosFixos dadosFixos = dadosFixosRepository.findById(pacienteId).orElse(null);
+
+        // 3. Busca todas as folhas para compor o histórico e alimentar a IA
+        List<Prontuario> todasAsFolhas = repository.buscarHistoricoCompletoDoPaciente(pacienteId);
+
+        // 4. Monta o Histórico Simplificado (Top 10) para o médico
+        List<ResumoAtendimentoDTO> historicoResumido = todasAsFolhas.stream()
+                .limit(10)
+                .map(p -> new ResumoAtendimentoDTO(
+                        p.getAgendamento().getDataConsulta(),
+                        p.getAgendamento().getMedico().getEspecialidade().toString(),
+                        p.getAgendamento().getMedico().getNome()
+                ))
+                .collect(Collectors.toList());
+
+        // 5. Prepara o texto e chama o DeepSeek para o resumo clínico inteligente
+        String textoParaIA = todasAsFolhas.stream()
+                .limit(10)
+                .map(p -> "Data: " + p.getAgendamento().getDataConsulta() + " - Queixa: " + p.getQueixaPrincipal())
+                .collect(Collectors.joining(" | "));
+
+        String resumoIA = deepSeekService.gerarResumoClinico(textoParaIA);
+
+        // 6. Cálculo dinâmico de Idade
+        int idade = Period.between(paciente.getDataNascimento(), LocalDate.now()).getYears();
+
+        // 7. Retorna o Consolidador (DTO) para o Front-end
+        return new FolhaDeRostoDTO(
+                paciente.getId(),
+                paciente.getNome(),
+                idade,
+                (dadosFixos != null) ? dadosFixos.getComorbidades() : "Não informadas",
+                (dadosFixos != null) ? dadosFixos.getAlergias() : "Sem alergias conhecidas",
+                resumoIA,
+                historicoResumido
+        );
     }
 
-    // --- BUSCAR TUDO (Ler a Pasta Completa do Paciente) 📂 ---
+    // --- OUTROS MÉTODOS DE CONSULTA (Acesso de Leitura Permitido) ---
     public List<Prontuario> listarHistoricoPaciente(UUID pacienteId) {
-        // Retorna a lista cronológica (do mais recente para o mais antigo)
         return repository.buscarHistoricoCompletoDoPaciente(pacienteId);
     }
 
-    // Método extra para buscar por ID do prontuário mesmo (caso precise editar)
-    public Prontuario buscarPorId(UUID id) {
-        return repository.findById(id)
+    public Prontuario buscarPorAgendamento(UUID agendamentoId) {
+        return repository.findByAgendamentoId(agendamentoId)
                 .orElseThrow(() -> new RuntimeException("Prontuário não encontrado."));
     }
 }

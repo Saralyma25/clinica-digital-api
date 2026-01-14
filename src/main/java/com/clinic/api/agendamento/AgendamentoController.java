@@ -96,4 +96,14 @@ public class AgendamentoController {
         service.cancelar(id);
         return ResponseEntity.noContent().build();
     }
+    // --- NOVO ENDPOINT (Dia 06): Lista de Atendimentos do Dia (Visão da Secretária) ---
+    // Exemplo de chamada: GET /agendamentos/diario?medicoId=...&data=2023-10-25
+    @GetMapping("/diario")
+    public ResponseEntity<List<com.clinic.api.agendamento.dto.AtendimentoDiarioDTO>> listarDiario(
+            @RequestParam UUID medicoId,
+            @RequestParam LocalDate data) {
+
+        var lista = service.listarAtendimentosDoDia(medicoId, data);
+        return ResponseEntity.ok(lista);
+    }
 }

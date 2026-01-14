@@ -34,11 +34,10 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, UUID> 
     boolean existsByMedicoIdAndDataConsulta(UUID medicoId, LocalDateTime dataConsulta);
 
     // REFORMULADO: Trava de especialidade usando o ENUM (Padrão novo do sistema)
-    boolean existsByPacienteIdAndMedico_EspecialidadeAndStatusIn(
-            UUID pacienteId,
-            Especialidade especialidade,
-            Collection<String> status
-    );
+   // boolean existsByPacienteIdAndMedico_EspecialidadeAndStatusIn(UUID pacienteId, String especialidade, List<String> status);
+    // Antes estava String especialidade. Agora mudamos para Especialidade especialidade.
+    boolean existsByPacienteIdAndMedico_EspecialidadeAndStatusIn(UUID pacienteId, Especialidade especialidade, List<String> status);
+
 
     // NOVA TRAVA: Evita que o PACIENTE agende dois médicos no mesmo horário
     boolean existsByPacienteIdAndDataConsultaAndStatusNot(UUID pacienteId, LocalDateTime data, String status);
@@ -52,4 +51,9 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, UUID> 
     @Modifying
     @Query("DELETE FROM Agendamento a WHERE a.status = 'EM_PROCESSAMENTO' AND a.dataCadastro < :limite")
     void limparAgendamentosExpirados(@Param("limite") LocalDateTime limite);
+
+    // 3. --- A PEÇA QUE FALTAVA (Lista do Dia) ---
+    // Este é o método que o seu Service está gritando que não encontra.
+    // Ele busca por médico, num intervalo de tempo (inicio e fim do dia) e ordena por horário.
+    List<Agendamento> findByMedicoIdAndDataConsultaBetweenOrderByDataConsultaAsc(UUID medicoId, LocalDateTime start, LocalDateTime end);
 }

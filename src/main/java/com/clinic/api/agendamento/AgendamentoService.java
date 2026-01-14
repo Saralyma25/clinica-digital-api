@@ -1,5 +1,6 @@
 package com.clinic.api.agendamento;
 
+import com.clinic.api.agendamento.dto.AtendimentoDiarioDTO;
 import com.clinic.api.medico.Medico;
 import com.clinic.api.medico.MedicoRepository;
 import com.clinic.api.paciente.Paciente;
@@ -9,10 +10,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class AgendamentoService {
@@ -104,7 +108,25 @@ public class AgendamentoService {
         return repository.save(agendamento);
     }
 
+    public List<AtendimentoDiarioDTO> listarAtendimentosDoDia(UUID medicoId, LocalDate data) {
+        // Definimos o início e o fim do dia para a busca no banco
+        LocalDateTime inicio = data.atStartOfDay();
+        LocalDateTime fim = data.atTime(LocalTime.MAX);
 
+        return repository.findByMedicoIdAndDataConsultaBetweenOrderByDataConsultaAsc(medicoId, inicio, fim)
+                .stream()
+                .map(a -> new AtendimentoDiarioDTO(
+                        a.getId(),
+                        a.getDataConsulta(),
+                        a.getPaciente().getNome(),
+                        a.getMedico().getEspecialidade().toString(),
+                        a.getStatus(),
+                        // Lógica para simplificar o financeiro para a secretária
+                        a.getPaciente().getAtendimentoParticular() ? a.getStatusPagamento() : "CONVÊNIO",
+                        "PRESENCIAL" // Por enquanto fixo, depois pegamos do Agendamento
+                ))
+                .collect(Collectors.toList());
+    }
 
     // --- 2. CONFIRMAÇÃO: Mantida para casos de fluxo EM_PROCESSAMENTO futuro ---
     @Transactional

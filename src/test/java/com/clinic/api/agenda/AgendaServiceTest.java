@@ -23,6 +23,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AgendaServiceTest {
@@ -48,10 +49,10 @@ class AgendaServiceTest {
         UUID medicoId = UUID.randomUUID();
         LocalDate segundaFeira = LocalDate.of(2025, 1, 13);
 
-        // NOVO: Mock para validar que o médico existe
-        Mockito.when(medicoRepository.findById(medicoId)).thenReturn(Optional.of(new Medico()));
+        // Mock para validar que o médico existe
+        when(medicoRepository.findById(medicoId)).thenReturn(Optional.of(new Medico()));
 
-        Mockito.when(configRepository.findByMedicoIdAndDiaSemana(eq(medicoId), eq(DayOfWeek.MONDAY)))
+        when(configRepository.findByMedicoIdAndDiaSemana(eq(medicoId), eq(DayOfWeek.MONDAY)))
                 .thenReturn(Optional.empty());
 
         List<LocalDateTime> horarios = agendaService.listarHorariosDisponiveis(medicoId, segundaFeira);
@@ -65,31 +66,31 @@ class AgendaServiceTest {
         UUID medicoId = UUID.randomUUID();
         LocalDate data = LocalDate.of(2025, 1, 13);
 
-        // NOVO: Mock para validar que o médico existe
-        Mockito.when(medicoRepository.findById(medicoId)).thenReturn(Optional.of(new Medico()));
+        // Mock para validar que o médico existe
+        when(medicoRepository.findById(medicoId)).thenReturn(Optional.of(new Medico()));
 
         ConfiguracaoAgenda config = new ConfiguracaoAgenda();
         config.setAtivo(true);
         config.setHorarioInicio(LocalTime.of(8, 0));
         config.setHorarioFim(LocalTime.of(9, 0));
 
-        Mockito.when(configRepository.findByMedicoIdAndDiaSemana(eq(medicoId), eq(DayOfWeek.MONDAY)))
+        when(configRepository.findByMedicoIdAndDiaSemana(eq(medicoId), eq(DayOfWeek.MONDAY)))
                 .thenReturn(Optional.of(config));
 
         LocalDateTime slotBloqueado = LocalDateTime.of(data, LocalTime.of(8, 15));
-        Mockito.when(bloqueioRepository.findBloqueiosNoIntervalo(eq(medicoId), eq(slotBloqueado), any()))
+        when(bloqueioRepository.findBloqueiosNoIntervalo(eq(medicoId), eq(slotBloqueado), any()))
                 .thenReturn(List.of(new BloqueioAgenda()));
 
-        Mockito.when(bloqueioRepository.findBloqueiosNoIntervalo(eq(medicoId),
-                        org.mockito.ArgumentMatchers.argThat(time -> !time.isEqual(slotBloqueado)), any()))
+        when(bloqueioRepository.findBloqueiosNoIntervalo(eq(medicoId),
+                org.mockito.ArgumentMatchers.argThat(time -> !time.isEqual(slotBloqueado)), any()))
                 .thenReturn(Collections.emptyList());
 
         LocalDateTime slotAgendado = LocalDateTime.of(data, LocalTime.of(8, 30));
-        Mockito.when(agendamentoRepository.existsByMedicoIdAndDataConsulta(eq(medicoId), eq(slotAgendado)))
+        when(agendamentoRepository.existsByMedicoIdAndDataConsulta(eq(medicoId), eq(slotAgendado)))
                 .thenReturn(true);
 
-        Mockito.when(agendamentoRepository.existsByMedicoIdAndDataConsulta(eq(medicoId),
-                        org.mockito.ArgumentMatchers.argThat(time -> !time.isEqual(slotAgendado))))
+        when(agendamentoRepository.existsByMedicoIdAndDataConsulta(eq(medicoId),
+                org.mockito.ArgumentMatchers.argThat(time -> !time.isEqual(slotAgendado))))
                 .thenReturn(false);
 
         List<LocalDateTime> horariosLivres = agendaService.listarHorariosDisponiveis(medicoId, data);
@@ -103,7 +104,7 @@ class AgendaServiceTest {
     @DisplayName("✅ Deve salvar configuração corretamente")
     void deveSalvarConfiguracao() {
         ConfiguracaoAgenda config = new ConfiguracaoAgenda();
-        Mockito.when(configRepository.save(config)).thenReturn(config);
+        when(configRepository.save(config)).thenReturn(config);
 
         ConfiguracaoAgenda salva = agendaService.salvarConfiguracao(config);
 
