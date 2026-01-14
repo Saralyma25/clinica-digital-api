@@ -181,4 +181,6 @@ public class AgendamentoService {
         LocalDateTime limite = LocalDateTime.now().minusMinutes(15);
         repository.deleteByStatusAndDataCadastroBefore("EM_PROCESSAMENTO", limite);
     }
+    // TODO: [DIA 11] Integrar ícone de WhatsApp para envio manual pela secretaria.
+// O sistema deve gerar o texto pronto e abrir o link: api.whatsapp.com/send?phone=...&text=...
 }

@@ -1,5 +1,6 @@
 package com.clinic.api.prontuario;
 
+import com.clinic.api.medico.enun.Especialidade;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -25,7 +26,7 @@ public interface ProntuarioRepository extends JpaRepository<Prontuario, UUID> {
     List<Prontuario> findByAgendamento_MedicoId(UUID medicoId);
 
     // Buscar por Especialidade
-    List<Prontuario> findByAgendamento_Medico_EspecialidadeContainingIgnoreCase(String especialidade);
+    List<Prontuario> findByAgendamento_Medico_Especialidade(Especialidade especialidade);
 
     // Busca todas as folhas (consultas) da pasta desse paciente, ordenadas da mais recente para a mais antiga
     @Query("SELECT p FROM Prontuario p WHERE p.agendamento.paciente.id = :pacienteId ORDER BY p.agendamento.dataConsulta DESC")

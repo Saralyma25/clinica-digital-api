@@ -1,5 +1,6 @@
 package com.clinic.api.paciente;
 
+import com.clinic.api.medico.enun.Especialidade;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;
@@ -29,6 +30,6 @@ public interface PacienteRepository extends JpaRepository<Paciente, UUID> {
     List<Paciente> findByPlano_ConvenioId(UUID convenioId);
 
     // Listar pacientes por especialidade do médico vinculado
-    List<Paciente> findByMedico_EspecialidadeContainingIgnoreCase(String especialidade);
+    List<Paciente> findByMedico_Especialidade(Especialidade especialidade);
 }
 

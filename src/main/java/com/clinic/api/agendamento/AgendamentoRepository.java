@@ -18,30 +18,28 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, UUID> 
     List<Agendamento> findByMedicoId(UUID medicoId);
     List<Agendamento> findByPacienteId(UUID pacienteId);
 
-    // Mantido para compatibilidade com buscas textuais
-    List<Agendamento> findByMedico_EspecialidadeContainingIgnoreCase(String especialidade);
-
-    // Adicionado: Busca por Enum para relatórios precisos
+    // CORREÇÃO: Removido o "ContainingIgnoreCase" que causava erro com Enum
     List<Agendamento> findByMedico_Especialidade(Especialidade especialidade);
 
     List<Agendamento> findByDataConsulta(LocalDateTime dataConsulta);
     List<Agendamento> findByDataConsultaBetween(LocalDateTime inicio, LocalDateTime fim);
 
-    // --- 2. REGRAS DE NEGÓCIO E TRAVAS (EXISTENCE CHECKS) ---
+    // --- 2. REGRAS DE NEGÓCIO E TRAVAS ---
 
-    // ACRESCENTADO: Verifica se o MÉDICO já tem compromisso (Essencial para o Service)
+    // Verifica se o médico já tem compromisso no horário
     boolean existsByMedicoIdAndDataConsulta(UUID medicoId, LocalDateTime dataConsulta);
 
-    // REFORMULADO: Trava de especialidade usando o ENUM (Padrão novo do sistema)
-   // boolean existsByPacienteIdAndMedico_EspecialidadeAndStatusIn(UUID pacienteId, String especialidade, List<String> status);
-    // Antes estava String especialidade. Agora mudamos para Especialidade especialidade.
+    // Trava para evitar consultas duplicadas da mesma especialidade para o mesmo paciente
     boolean existsByPacienteIdAndMedico_EspecialidadeAndStatusIn(UUID pacienteId, Especialidade especialidade, List<String> status);
 
-
-    // NOVA TRAVA: Evita que o PACIENTE agende dois médicos no mesmo horário
+    // Evita choque de horários para o paciente
     boolean existsByPacienteIdAndDataConsultaAndStatusNot(UUID pacienteId, LocalDateTime data, String status);
 
-    // --- 3. OPERAÇÕES DE LIMPEZA (FAXINEIRO 🤖) ---
+    // Busca textual flexível via Query Manual (Seguro para Enums)
+    @Query("SELECT a FROM Agendamento a WHERE UPPER(STR(a.medico.especialidade)) LIKE UPPER(CONCAT('%', :especialidade, '%'))")
+    List<Agendamento> buscarPorEspecialidade(@Param("especialidade") String especialidade);
+
+    // --- 3. OPERAÇÕES DE MANUTENÇÃO ---
 
     @Modifying
     @Query("DELETE FROM Agendamento a WHERE a.status = :status AND a.dataCadastro < :limite")
@@ -51,8 +49,6 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, UUID> 
     @Query("DELETE FROM Agendamento a WHERE a.status = 'EM_PROCESSAMENTO' AND a.dataCadastro < :limite")
     void limparAgendamentosExpirados(@Param("limite") LocalDateTime limite);
 
-    // 3. --- A PEÇA QUE FALTAVA (Lista do Dia) ---
-    // Este é o método que o seu Service está gritando que não encontra.
-    // Ele busca por médico, num intervalo de tempo (inicio e fim do dia) e ordena por horário.
+    // Método essencial para o Dashboard do Médico (Lista do Dia)
     List<Agendamento> findByMedicoIdAndDataConsultaBetweenOrderByDataConsultaAsc(UUID medicoId, LocalDateTime start, LocalDateTime end);
 }
