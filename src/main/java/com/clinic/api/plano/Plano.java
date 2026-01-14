@@ -2,6 +2,8 @@ package com.clinic.api.plano;
 
 import com.clinic.api.convenio.Convenio;
 import jakarta.persistence.*;
+
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Table(name = "tb_plano")
@@ -19,11 +21,28 @@ public class Plano {
     @Column(nullable = false)
     private Boolean ativo = true;
 
+    // NOVO CAMPO: Quanto o médico recebe por consulta deste plano
+    @Column(name = "valor_repasse")
+    private BigDecimal valorRepasse;
+
+    // Adicione o Getter e Setter
+    public BigDecimal getValorRepasse() { return valorRepasse; }
+    public void setValorRepasse(BigDecimal valorRepasse) { this.valorRepasse = valorRepasse; }
+
+
     @ManyToOne
     @JoinColumn(name = "convenio_id", nullable = false)
     private Convenio convenio;
 
     public Plano() {}
+
+    public Plano(UUID id, String nome, Boolean ativo, BigDecimal valorRepasse, Convenio convenio) {
+        this.id = id;
+        this.nome = nome;
+        this.ativo = ativo;
+        this.valorRepasse = valorRepasse;
+        this.convenio = convenio;
+    }
 
     public Plano(String nome, Convenio convenio) {
         this.nome = nome;

@@ -1,5 +1,6 @@
 package com.clinic.api.medico;
 
+import com.clinic.api.medico.enun.Especialidade;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

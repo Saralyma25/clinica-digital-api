@@ -1,6 +1,6 @@
 package com.clinic.api.medico.dto;
 
-import com.clinic.api.medico.Especialidade;
+import com.clinic.api.medico.enun.Especialidade;
 import com.clinic.api.medico.Medico;
 import java.math.BigDecimal;
 import java.util.UUID;

@@ -1,7 +1,7 @@
 package com.clinic.api.agendamento.dto;
 
 import com.clinic.api.agendamento.Agendamento;
-import com.clinic.api.medico.Especialidade;
+import com.clinic.api.medico.enun.Especialidade;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

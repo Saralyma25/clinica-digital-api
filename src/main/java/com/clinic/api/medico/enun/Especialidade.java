@@ -1,4 +1,4 @@
-package com.clinic.api.medico;
+package com.clinic.api.medico.enun;
 
 public enum Especialidade {
     CARDIOLOGIA,

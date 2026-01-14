@@ -1,6 +1,6 @@
 package com.clinic.api.medico.dto;
 
-import com.clinic.api.medico.Especialidade;
+import com.clinic.api.medico.enun.Especialidade;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

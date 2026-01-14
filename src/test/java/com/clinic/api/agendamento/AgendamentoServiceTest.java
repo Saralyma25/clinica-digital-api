@@ -1,7 +1,7 @@
 package com.clinic.api.agendamento;
 
 import com.clinic.api.agendamento.dto.AtendimentoDiarioDTO;
-import com.clinic.api.medico.Especialidade;
+import com.clinic.api.medico.enun.Especialidade;
 import com.clinic.api.medico.Medico;
 import com.clinic.api.medico.MedicoRepository;
 import com.clinic.api.paciente.Paciente;
