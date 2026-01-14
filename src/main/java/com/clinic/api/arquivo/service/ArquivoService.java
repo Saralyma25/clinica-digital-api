@@ -3,6 +3,7 @@ package com.clinic.api.arquivo.service;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -36,21 +37,21 @@ public class ArquivoService {
 
     // --- SALVAR ARQUIVO ---
     public String salvarArquivo(MultipartFile arquivo) {
-        // Normaliza o nome do arquivo original
-        String nomeOriginal = arquivo.getOriginalFilename();
+        // 1. Pega apenas o nome do arquivo, removendo qualquer caminho enviado pelo usuário
+        String nomeOriginal = StringUtils.cleanPath(arquivo.getOriginalFilename());
 
-        // Gera um nome único: UUID + Extensão Original
-        // Exemplo: "exame.pdf" vira "a1b2c3d4-exame.pdf"
+        // 2. Defesa contra Path Traversal: impede o uso de ".."
+        if (nomeOriginal.contains("..")) {
+            throw new RuntimeException("Nome de arquivo inválido: " + nomeOriginal);
+        }
+
+        // 3. Gera o nome único com UUID
         String nomeUnico = UUID.randomUUID().toString() + "_" + nomeOriginal;
 
         try {
-            // Caminho completo: .../clinica-digital-api/uploads/nome_arquivo.pdf
             Path destino = this.diretorioArquivos.resolve(nomeUnico);
-
-            // Copia os bytes do arquivo para o disco
             Files.copy(arquivo.getInputStream(), destino);
-
-            return nomeUnico; // Retorna o nome gerado para salvarmos no banco depois
+            return nomeUnico;
         } catch (IOException ex) {
             throw new RuntimeException("Erro ao salvar arquivo " + nomeOriginal, ex);
         }
