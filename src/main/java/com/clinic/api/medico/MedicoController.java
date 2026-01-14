@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-@RestController // Diz ao Spring: "Isso aqui responde Web"
-@RequestMapping("/medicos") // O endereço base: http://localhost:8080/medicos
+@RestController
+@RequestMapping("/medicos")
 public class MedicoController {
 
     private final MedicoService service;
@@ -20,8 +20,7 @@ public class MedicoController {
         this.service = service;
     }
 
-    @PostMapping // Verbo POST (Criar)
-    // @Valid ativa as anotações do DTO (@NotBlank, etc)
+    @PostMapping
     public ResponseEntity<MedicoResponse> cadastrar(@RequestBody @Valid MedicoRequest request) {
 
         // 1. Converter DTO -> Entidade
@@ -29,7 +28,11 @@ public class MedicoController {
         medico.setNome(request.getNome());
         medico.setCrm(request.getCrm());
         medico.setEmail(request.getEmail());
+
+        // CORREÇÃO: O Medico agora espera Especialidade (Enum).
+        // Certifique-se de que request.getEspecialidade() também retorne o Enum Especialidade.
         medico.setEspecialidade(request.getEspecialidade());
+
         medico.setValorConsulta(request.getValorConsulta());
         medico.setSenha("123456");
 
@@ -40,11 +43,10 @@ public class MedicoController {
         return ResponseEntity.status(HttpStatus.CREATED).body(new MedicoResponse(medicoSalvo));
     }
 
-    @GetMapping // Verbo GET (Listar)
+    @GetMapping
     public ResponseEntity<List<MedicoResponse>> listar() {
-        // Busca todos e converte cada um para DTO usando stream (Java 8+)
         List<MedicoResponse> lista = service.listarTodos().stream()
-                .map(MedicoResponse::new) // Chama o construtor do DTO
+                .map(MedicoResponse::new)
                 .toList();
 
         return ResponseEntity.ok(lista);
@@ -52,10 +54,7 @@ public class MedicoController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Medico> atualizar(@PathVariable UUID id, @RequestBody Medico dadosNovos) {
-        // Chama o service, que agora sabe como atualizar
         Medico medicoAtualizado = service.atualizar(id, dadosNovos);
-
         return ResponseEntity.ok(medicoAtualizado);
     }
-
 }

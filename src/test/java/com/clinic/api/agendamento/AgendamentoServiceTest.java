@@ -1,5 +1,6 @@
 package com.clinic.api.agendamento;
 
+import com.clinic.api.medico.Especialidade;
 import com.clinic.api.medico.Medico;
 import com.clinic.api.medico.MedicoRepository;
 import com.clinic.api.paciente.Paciente;
@@ -79,21 +80,23 @@ class AgendamentoServiceTest {
     }
 
     @Test
-    @DisplayName("✅ Deve agendar como CONVÊNIO (Status Direto)")
-    void deveAgendarComSucessoConvenio() {
+    @DisplayName("✅ Deve agendar via CONVÊNIO (Status AGENDADO direto)")
+    void deveAgendarConvenioComSucesso() {
         Medico medico = new Medico();
         medico.setId(UUID.randomUUID());
-        medico.setEspecialidade("Pediatria");
+        // CORREÇÃO: Usando o Enum em vez de String
+        medico.setEspecialidade(Especialidade.PEDIATRIA);
+        medico.setValorConsulta(new BigDecimal("200.00"));
 
         Paciente paciente = new Paciente();
         paciente.setId(UUID.randomUUID());
-        paciente.setPlano(new Plano()); // Possui plano
+        paciente.setPlano(new Plano());
         paciente.setAtendimentoParticular(false);
 
         Agendamento agendamento = new Agendamento();
         agendamento.setMedico(medico);
         agendamento.setPaciente(paciente);
-        agendamento.setDataConsulta(LocalDateTime.now().plusDays(2));
+        agendamento.setDataConsulta(LocalDateTime.now().plusDays(1));
 
         Mockito.when(medicoRepository.findById(any())).thenReturn(Optional.of(medico));
         Mockito.when(pacienteRepository.findById(any())).thenReturn(Optional.of(paciente));

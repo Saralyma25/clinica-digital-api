@@ -1,5 +1,6 @@
 package com.clinic.api.medico.dto;
 
+import com.clinic.api.medico.Especialidade;
 import com.clinic.api.medico.Medico;
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -8,7 +9,7 @@ public class MedicoResponse {
     private UUID id;
     private String nome;
     private String crm;
-    private String especialidade;
+    private Especialidade especialidade;
     private BigDecimal valorConsulta;
 
     // Construtor que converte Entidade -> DTO
@@ -24,6 +25,9 @@ public class MedicoResponse {
     public UUID getId() { return id; }
     public String getNome() { return nome; }
     public String getCrm() { return crm; }
-    public String getEspecialidade() { return especialidade; }
+
+    // CORREÇÃO: O tipo de retorno deve ser Especialidade (Enum)
+    public Especialidade getEspecialidade() { return especialidade; }
+
     public BigDecimal getValorConsulta() { return valorConsulta; }
 }
