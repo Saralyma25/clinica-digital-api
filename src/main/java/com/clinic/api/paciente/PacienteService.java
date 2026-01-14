@@ -15,10 +15,24 @@ public class PacienteService {
     }
 
     // --- CREATE ---
+    // Local: com.clinic.api.paciente.PacienteService.java
+
     public Paciente cadastrar(Paciente paciente) {
+        // 1. TRAVA: CPF (Documento obrigatório e único)
         if (repository.findByCpf(paciente.getCpf()).isPresent()) {
-            throw new RuntimeException("CPF já cadastrado.");
+            throw new RuntimeException("Este CPF já está cadastrado no sistema.");
         }
+
+        // 2. TRAVA: E-mail
+        if (repository.findByEmail(paciente.getEmail()).isPresent()) {
+            throw new RuntimeException("Este e-mail já está vinculado a outro paciente.");
+        }
+
+        // 3. TRAVA: Telefone (Opcional, mas recomendado para evitar cadastros duplicados)
+        if (repository.findByTelefone(paciente.getTelefone()).isPresent()) {
+            throw new RuntimeException("Este número de telefone já pertence a um cadastro existente.");
+        }
+
         return repository.save(paciente);
     }
 

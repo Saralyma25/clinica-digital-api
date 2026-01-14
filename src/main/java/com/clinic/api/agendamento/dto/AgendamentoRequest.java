@@ -17,32 +17,30 @@ public class AgendamentoRequest {
     @Future(message = "A data da consulta deve ser no futuro")
     private LocalDateTime dataConsulta;
 
-    // --- Construtores Manuais ---
+    private String formaPagamento;
+    private String nomeConvenio;
+    private String numeroCarteirinha;
+
+    // Construtor
     public AgendamentoRequest() {
     }
 
-    // --- Getters e Setters Manuais (Sem Lombok) ---
-    public UUID getMedicoId() {
-        return medicoId;
-    }
+    // Getters e Setters
+    public UUID getMedicoId() { return medicoId; }
+    public void setMedicoId(UUID medicoId) { this.medicoId = medicoId; }
 
-    public void setMedicoId(UUID medicoId) {
-        this.medicoId = medicoId;
-    }
+    public UUID getPacienteId() { return pacienteId; }
+    public void setPacienteId(UUID pacienteId) { this.pacienteId = pacienteId; }
 
-    public UUID getPacienteId() {
-        return pacienteId;
-    }
+    public LocalDateTime getDataConsulta() { return dataConsulta; }
+    public void setDataConsulta(LocalDateTime dataConsulta) { this.dataConsulta = dataConsulta; }
 
-    public void setPacienteId(UUID pacienteId) {
-        this.pacienteId = pacienteId;
-    }
+    public String getFormaPagamento() { return formaPagamento; }
+    public void setFormaPagamento(String formaPagamento) { this.formaPagamento = formaPagamento; }
 
-    public LocalDateTime getDataConsulta() {
-        return dataConsulta;
-    }
+    public String getNomeConvenio() { return nomeConvenio; }
+    public void setNomeConvenio(String nomeConvenio) { this.nomeConvenio = nomeConvenio; }
 
-    public void setDataConsulta(LocalDateTime dataConsulta) {
-        this.dataConsulta = dataConsulta;
-    }
+    public String getNumeroCarteirinha() { return numeroCarteirinha; }
+    public void setNumeroCarteirinha(String numeroCarteirinha) { this.numeroCarteirinha = numeroCarteirinha; }
 }

@@ -45,29 +45,29 @@ class AgendaServiceTest {
     @Test
     @DisplayName("❌ Deve retornar lista vazia se o médico NÃO trabalha no dia da semana")
     void deveRetornarVazioSeSemConfiguracao() {
-        // Cenario
         UUID medicoId = UUID.randomUUID();
-        LocalDate segundaFeira = LocalDate.of(2025, 1, 13); // É uma segunda-feira
+        LocalDate segundaFeira = LocalDate.of(2025, 1, 13);
 
-        // Mock: O banco diz que NÃO achou configuração para Segunda-feira
+        // NOVO: Mock para validar que o médico existe
+        Mockito.when(medicoRepository.findById(medicoId)).thenReturn(Optional.of(new Medico()));
+
         Mockito.when(configRepository.findByMedicoIdAndDiaSemana(eq(medicoId), eq(DayOfWeek.MONDAY)))
                 .thenReturn(Optional.empty());
 
-        // Ação
         List<LocalDateTime> horarios = agendaService.listarHorariosDisponiveis(medicoId, segundaFeira);
 
-        // Verificação
-        Assertions.assertTrue(horarios.isEmpty(), "A lista deveria estar vazia pois o médico não trabalha hoje");
+        Assertions.assertTrue(horarios.isEmpty());
     }
 
     @Test
     @DisplayName("✅ Deve gerar slots corretamente descontando AGENDAMENTOS e BLOQUEIOS")
     void deveGerarGradeDescontandoOcupacoes() {
-        // --- CENÁRIO ---
         UUID medicoId = UUID.randomUUID();
-        LocalDate data = LocalDate.of(2025, 1, 13); // Segunda-feira
+        LocalDate data = LocalDate.of(2025, 1, 13);
 
-        // 1. Configuração: Atende das 08:00 às 09:00 (Deve gerar 4 slots: 08:00, 08:15, 08:30, 08:45)
+        // NOVO: Mock para validar que o médico existe
+        Mockito.when(medicoRepository.findById(medicoId)).thenReturn(Optional.of(new Medico()));
+
         ConfiguracaoAgenda config = new ConfiguracaoAgenda();
         config.setAtivo(true);
         config.setHorarioInicio(LocalTime.of(8, 0));
@@ -76,41 +76,25 @@ class AgendaServiceTest {
         Mockito.when(configRepository.findByMedicoIdAndDiaSemana(eq(medicoId), eq(DayOfWeek.MONDAY)))
                 .thenReturn(Optional.of(config));
 
-        // 2. Bloqueio: Vamos simular um bloqueio às 08:15 (Ex: Reunião rápida)
-        // O mock deve retornar uma lista NÃO vazia quando perguntarem do horário das 08:15
         LocalDateTime slotBloqueado = LocalDateTime.of(data, LocalTime.of(8, 15));
-
         Mockito.when(bloqueioRepository.findBloqueiosNoIntervalo(eq(medicoId), eq(slotBloqueado), any()))
-                .thenReturn(List.of(new BloqueioAgenda())); // Retorna algo para dizer "Tem bloqueio"
+                .thenReturn(List.of(new BloqueioAgenda()));
 
-        // Para os outros horários, retorna lista vazia (sem bloqueio)
         Mockito.when(bloqueioRepository.findBloqueiosNoIntervalo(eq(medicoId),
                         org.mockito.ArgumentMatchers.argThat(time -> !time.isEqual(slotBloqueado)), any()))
                 .thenReturn(Collections.emptyList());
 
-
-        // 3. Agendamento: Vamos simular que 08:30 já tem paciente
         LocalDateTime slotAgendado = LocalDateTime.of(data, LocalTime.of(8, 30));
-
         Mockito.when(agendamentoRepository.existsByMedicoIdAndDataConsulta(eq(medicoId), eq(slotAgendado)))
-                .thenReturn(true); // Sim, tem paciente
+                .thenReturn(true);
 
-        // Para os outros horários, retorna false (sem paciente)
         Mockito.when(agendamentoRepository.existsByMedicoIdAndDataConsulta(eq(medicoId),
                         org.mockito.ArgumentMatchers.argThat(time -> !time.isEqual(slotAgendado))))
                 .thenReturn(false);
 
-        // --- AÇÃO ---
         List<LocalDateTime> horariosLivres = agendaService.listarHorariosDisponiveis(medicoId, data);
 
-        // --- VERIFICAÇÃO ---
-        // Esperamos:
-        // 08:00 -> LIVRE ✅
-        // 08:15 -> Ocupado por Bloqueio ❌
-        // 08:30 -> Ocupado por Agendamento ❌
-        // 08:45 -> LIVRE ✅
-
-        Assertions.assertEquals(2, horariosLivres.size()); // Só sobraram 2
+        Assertions.assertEquals(2, horariosLivres.size());
         Assertions.assertTrue(horariosLivres.contains(LocalDateTime.of(data, LocalTime.of(8, 0))));
         Assertions.assertTrue(horariosLivres.contains(LocalDateTime.of(data, LocalTime.of(8, 45))));
     }

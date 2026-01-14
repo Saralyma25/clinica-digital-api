@@ -1,8 +1,9 @@
 package com.clinic.api.medico;
 
 import jakarta.persistence.*;
-import java.math.BigDecimal; // Importante para dinheiro!
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.UUID;
 import java.util.Objects;
 
@@ -24,9 +25,10 @@ public class Medico {
     private String senha;
 
     private String crm;
-    private String especialidade;
 
-    // NOVO CAMPO: Valor da consulta particular
+    @Enumerated(EnumType.STRING) // Garante que CARDIOLOGIA seja salvo como texto no banco
+    private Especialidade especialidade;
+
     @Column(name = "valor_consulta")
     private BigDecimal valorConsulta;
 
@@ -35,10 +37,18 @@ public class Medico {
     @Column(name = "data_cadastro")
     private LocalDateTime dataCadastro;
 
-    // --- Construtores ---
+    @Column(name = "hora_inicio")
+    private LocalTime horaInicio;
+
+    @Column(name = "hora_fim")
+    private LocalTime horaFim;
+
+    @Column(name = "duracao_consulta")
+    private Integer duracaoConsulta;
+
     public Medico() {}
 
-    public Medico(String nome, String email, String senha, String crm, String especialidade, BigDecimal valorConsulta) {
+    public Medico(String nome, String email, String senha, String crm, Especialidade especialidade, BigDecimal valorConsulta) {
         this.nome = nome;
         this.email = email;
         this.senha = senha;
@@ -54,7 +64,7 @@ public class Medico {
         if (this.ativo == null) this.ativo = true;
     }
 
-    // --- Getters e Setters ---
+    // --- Getters e Setters Atualizados ---
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -70,10 +80,9 @@ public class Medico {
     public String getCrm() { return crm; }
     public void setCrm(String crm) { this.crm = crm; }
 
-    public String getEspecialidade() { return especialidade; }
-    public void setEspecialidade(String especialidade) { this.especialidade = especialidade; }
+    public Especialidade getEspecialidade() { return especialidade; }
+    public void setEspecialidade(Especialidade especialidade) { this.especialidade = especialidade; }
 
-    // Getter e Setter do Valor
     public BigDecimal getValorConsulta() { return valorConsulta; }
     public void setValorConsulta(BigDecimal valorConsulta) { this.valorConsulta = valorConsulta; }
 
@@ -83,7 +92,15 @@ public class Medico {
     public LocalDateTime getDataCadastro() { return dataCadastro; }
     public void setDataCadastro(LocalDateTime dataCadastro) { this.dataCadastro = dataCadastro; }
 
-    // --- Equals e HashCode ---
+    public LocalTime getHoraInicio() { return horaInicio; }
+    public void setHoraInicio(LocalTime horaInicio) { this.horaInicio = horaInicio; }
+
+    public LocalTime getHoraFim() { return horaFim; }
+    public void setHoraFim(LocalTime horaFim) { this.horaFim = horaFim; }
+
+    public Integer getDuracaoConsulta() { return duracaoConsulta; }
+    public void setDuracaoConsulta(Integer duracaoConsulta) { this.duracaoConsulta = duracaoConsulta; }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -93,7 +110,5 @@ public class Medico {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
+    public int hashCode() { return Objects.hash(id); }
 }

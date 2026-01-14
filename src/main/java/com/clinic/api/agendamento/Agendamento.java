@@ -27,23 +27,33 @@ public class Agendamento {
     @Column(name = "data_consulta", nullable = false)
     private LocalDateTime dataConsulta;
 
+    // --- DADOS DO CONVÊNIO / PAGAMENTO ---
+    @Column(name = "nome_convenio")
+    private String nomeConvenio;
+
+    @Column(name = "numero_carteirinha")
+    private String numeroCarteirinha;
+
+    @Column(name = "forma_pagamento")
+    private String formaPagamento; // PIX, CARTAO, BOLETO
+
     // --- FINANCEIRO ---
     @Column(name = "valor_consulta")
-    private BigDecimal valorConsulta; // Se for particular, preenchemos. Se convênio, fica null ou 0.
+    private BigDecimal valorConsulta;
 
     @Column(name = "link_pagamento")
-    private String linkPagamento; // Aqui guardaremos a URL do Pix/Cartão
+    private String linkPagamento;
 
     @Column(name = "status_pagamento")
-    private String statusPagamento; // PENDENTE, PAGO, CANCELADO
-    // ------------------
+    private String statusPagamento; // PENDENTE, PAGO, CANCELADO, CONVENIO_APROVADO
 
-    private String status; // AGENDADO, REALIZADO, CANCELADO
+    // --- STATUS E AUDITORIA ---
+    private String status; // EM_PROCESSAMENTO, AGENDADO, REALIZADO, CANCELADO
 
     @Column(name = "data_cadastro")
     private LocalDateTime dataCadastro;
 
-    @PrePersist // Preenche a hora automaticamente antes de salvar
+    @PrePersist
     public void prePersist() {
         if(this.dataCadastro == null) this.dataCadastro = LocalDateTime.now();
     }
@@ -55,10 +65,9 @@ public class Agendamento {
         this.medico = medico;
         this.paciente = paciente;
         this.dataConsulta = dataConsulta;
-        this.status = "AGENDADO";
+        this.status = "EM_PROCESSAMENTO";
         this.statusPagamento = "PENDENTE";
     }
-
 
     // --- Getters e Setters ---
     public UUID getId() { return id; }
@@ -72,6 +81,15 @@ public class Agendamento {
 
     public LocalDateTime getDataConsulta() { return dataConsulta; }
     public void setDataConsulta(LocalDateTime dataConsulta) { this.dataConsulta = dataConsulta; }
+
+    public String getNomeConvenio() { return nomeConvenio; }
+    public void setNomeConvenio(String nomeConvenio) { this.nomeConvenio = nomeConvenio; }
+
+    public String getNumeroCarteirinha() { return numeroCarteirinha; }
+    public void setNumeroCarteirinha(String numeroCarteirinha) { this.numeroCarteirinha = numeroCarteirinha; }
+
+    public String getFormaPagamento() { return formaPagamento; }
+    public void setFormaPagamento(String formaPagamento) { this.formaPagamento = formaPagamento; }
 
     public BigDecimal getValorConsulta() { return valorConsulta; }
     public void setValorConsulta(BigDecimal valorConsulta) { this.valorConsulta = valorConsulta; }

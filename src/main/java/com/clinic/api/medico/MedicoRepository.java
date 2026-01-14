@@ -12,9 +12,8 @@ public interface MedicoRepository extends JpaRepository<Medico, UUID> {
     Optional<Medico> findByEmail(String email);
     Optional<Medico> findByCrm(String crm);
 
-    // Busca por parte do nome
     List<Medico> findByNomeContainingIgnoreCase(String nome);
 
-    // Busca por especialidade (Ex: "Cardio" acha "Cardiologista")
-    List<Medico> findByEspecialidadeContainingIgnoreCase(String especialidade);
+    // Agora busca pelo tipo exato do Enum
+    List<Medico> findByEspecialidade(Especialidade especialidade);
 }

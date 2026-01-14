@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController // Diz ao Spring: "Isso aqui responde Web"
 @RequestMapping("/medicos") // O endereço base: http://localhost:8080/medicos
@@ -48,4 +49,13 @@ public class MedicoController {
 
         return ResponseEntity.ok(lista);
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Medico> atualizar(@PathVariable UUID id, @RequestBody Medico dadosNovos) {
+        // Chama o service, que agora sabe como atualizar
+        Medico medicoAtualizado = service.atualizar(id, dadosNovos);
+
+        return ResponseEntity.ok(medicoAtualizado);
+    }
+
 }

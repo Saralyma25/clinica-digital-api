@@ -14,20 +14,22 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 
-@ExtendWith(MockitoExtension.class) // Habilita o Mockito
+@ExtendWith(MockitoExtension.class)
 class AgendamentoServiceTest {
 
-    @InjectMocks // Quem estamos testando (O Service Real)
+    @InjectMocks
     private AgendamentoService agendamentoService;
 
-    @Mock // Quem vamos "fingir" (Os Repositórios)
+    @Mock
     private AgendamentoRepository repository;
     @Mock
     private MedicoRepository medicoRepository;
@@ -37,91 +39,113 @@ class AgendamentoServiceTest {
     @Test
     @DisplayName("❌ Deve falhar ao tentar agendar para uma data no PASSADO")
     void naoDeveAgendarNoPassado() {
-        // Cenario
-        Agendamento agendamento = new Agendamento();
-        agendamento.setMedico(new Medico());
-        agendamento.getMedico().setId(UUID.randomUUID());
-        agendamento.setPaciente(new Paciente());
-        agendamento.getPaciente().setId(UUID.randomUUID());
-
-        // Define data para ONTEM
+        Agendamento agendamento = criarAgendamentoBase();
         agendamento.setDataConsulta(LocalDateTime.now().minusDays(1));
 
-        // Mockando as buscas de ID para não falhar antes da hora
         Mockito.when(medicoRepository.findById(any())).thenReturn(Optional.of(new Medico()));
         Mockito.when(pacienteRepository.findById(any())).thenReturn(Optional.of(new Paciente()));
 
-        // Ação e Verificação (Espero que estoure um erro RuntimeException)
-        assertThrows(RuntimeException.class, () -> {
-            agendamentoService.agendar(agendamento);
-        });
+        assertThrows(RuntimeException.class, () -> agendamentoService.agendar(agendamento));
     }
 
     @Test
-    @DisplayName("❌ Deve falhar se o médico já tiver agendamento no horário")
+    @DisplayName("❌ Deve falhar se o médico já estiver ocupado")
     void naoDeveAgendarSeMedicoOcupado() {
-        // Cenario
-        Agendamento agendamento = new Agendamento();
-        agendamento.setMedico(new Medico());
-        agendamento.getMedico().setId(UUID.randomUUID()); // ID Falso
-        agendamento.setPaciente(new Paciente());
-        agendamento.getPaciente().setId(UUID.randomUUID());
-
-        // Data futura válida
+        Agendamento agendamento = criarAgendamentoBase();
         agendamento.setDataConsulta(LocalDateTime.now().plusDays(1));
 
-        // Mocks
         Mockito.when(medicoRepository.findById(any())).thenReturn(Optional.of(new Medico()));
         Mockito.when(pacienteRepository.findById(any())).thenReturn(Optional.of(new Paciente()));
-
-        // O PULO DO GATO: Fingimos que o banco disse "SIM, JÁ EXISTE AGENDAMENTO"
         Mockito.when(repository.existsByMedicoIdAndDataConsulta(any(), any())).thenReturn(true);
 
-        // Ação e Verificação
-        RuntimeException erro = assertThrows(RuntimeException.class, () -> {
-            agendamentoService.agendar(agendamento);
-        });
-
-        Assertions.assertEquals("Horário indisponível (Já reservado).", erro.getMessage());
+        RuntimeException erro = assertThrows(RuntimeException.class, () -> agendamentoService.agendar(agendamento));
+        assertEquals("Horário indisponível para este médico.", erro.getMessage());
     }
 
     @Test
-    @DisplayName("✅ Deve agendar com sucesso se tudo estiver correto")
-    void deveAgendarComSucesso() {
-        // Cenario
-        UUID medicoId = UUID.randomUUID();
-        UUID pacienteId = UUID.randomUUID();
+    @DisplayName("❌ Deve falhar se o paciente já tiver agendamento ativo na mesma especialidade")
+    void naoDeveAgendarDuplicidadeEspecialidade() {
+        Agendamento agendamento = criarAgendamentoBase();
+        agendamento.setDataConsulta(LocalDateTime.now().plusDays(1));
 
+        Mockito.when(medicoRepository.findById(any())).thenReturn(Optional.of(new Medico()));
+        Mockito.when(pacienteRepository.findById(any())).thenReturn(Optional.of(new Paciente()));
+
+        // CORREÇÃO: Usando o novo método do repositório
+        Mockito.when(repository.existsByPacienteIdAndMedico_EspecialidadeAndStatusIn(any(), any(), any()))
+                .thenReturn(true);
+
+        assertThrows(RuntimeException.class, () -> agendamentoService.agendar(agendamento));
+    }
+
+    @Test
+    @DisplayName("✅ Deve agendar como CONVÊNIO (Status Direto)")
+    void deveAgendarComSucessoConvenio() {
         Medico medico = new Medico();
-        medico.setId(medicoId);
-        medico.setValorConsulta(new java.math.BigDecimal("200.00"));
-        medico.setEspecialidade("Cardiologia");
+        medico.setId(UUID.randomUUID());
+        medico.setEspecialidade("Pediatria");
 
         Paciente paciente = new Paciente();
-        paciente.setId(pacienteId);
-        paciente.setAtendimentoParticular(true); // Vai pagar particular
+        paciente.setId(UUID.randomUUID());
+        paciente.setPlano(new Plano()); // Possui plano
+        paciente.setAtendimentoParticular(false);
 
         Agendamento agendamento = new Agendamento();
         agendamento.setMedico(medico);
         agendamento.setPaciente(paciente);
-        agendamento.setDataConsulta(LocalDateTime.now().plusDays(1)); // Futuro
+        agendamento.setDataConsulta(LocalDateTime.now().plusDays(2));
 
-        // Mocks (Comportamento Feliz)
-        Mockito.when(medicoRepository.findById(medicoId)).thenReturn(Optional.of(medico));
-        Mockito.when(pacienteRepository.findById(pacienteId)).thenReturn(Optional.of(paciente));
-        Mockito.when(repository.existsByMedicoIdAndDataConsulta(any(), any())).thenReturn(false); // Médico Livre
-        // Mock da Trava de Especialidade
-        Mockito.when(repository.existsByPacienteIdAndMedico_EspecialidadeAndStatusNot(any(), any(), any())).thenReturn(false);
+        Mockito.when(medicoRepository.findById(any())).thenReturn(Optional.of(medico));
+        Mockito.when(pacienteRepository.findById(any())).thenReturn(Optional.of(paciente));
+        Mockito.when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        // Quando salvar, retorna o próprio objeto
-        Mockito.when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        Agendamento salvo = agendamentoService.agendar(agendamento);
 
-        // Ação
-        Agendamento agendamentoSalvo = agendamentoService.agendar(agendamento);
+        assertEquals("AGENDADO", salvo.getStatus());
+        assertEquals("CONVENIO_APROVADO", salvo.getStatusPagamento());
+        assertEquals(BigDecimal.ZERO, salvo.getValorConsulta());
+    }
 
-        // Verificação
-        Assertions.assertNotNull(agendamentoSalvo);
-        Assertions.assertEquals("EM_PROCESSAMENTO", agendamentoSalvo.getStatus());
-        Assertions.assertEquals(medico.getValorConsulta(), agendamentoSalvo.getValorConsulta());
+    @Test
+    @DisplayName("✅ Deve confirmar agendamento particular (PAGO)")
+    void deveConfirmarAgendamentoParticular() {
+        UUID id = UUID.randomUUID();
+        Agendamento agendamento = new Agendamento();
+        agendamento.setStatus("EM_PROCESSAMENTO");
+        agendamento.setStatusPagamento("AGUARDANDO_PAGAMENTO");
+        agendamento.setDataConsulta(LocalDateTime.now().plusDays(3));
+
+        Mockito.when(repository.findById(id)).thenReturn(Optional.of(agendamento));
+        Mockito.when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        agendamentoService.confirmarAgendamento(id);
+
+        assertEquals("AGENDADO", agendamento.getStatus());
+        assertEquals("PAGO", agendamento.getStatusPagamento());
+    }
+
+    @Test
+    @DisplayName("❌ Deve barrar BOLETO com menos de 48h de antecedência")
+    void deveBarrarBoletoEmCimaDaHora() {
+        UUID id = UUID.randomUUID();
+        Agendamento agendamento = new Agendamento();
+        agendamento.setStatus("EM_PROCESSAMENTO");
+        agendamento.setFormaPagamento("BOLETO");
+        agendamento.setDataConsulta(LocalDateTime.now().plusHours(24)); // Apenas 24h
+
+        Mockito.when(repository.findById(id)).thenReturn(Optional.of(agendamento));
+
+        RuntimeException erro = assertThrows(RuntimeException.class, () -> agendamentoService.confirmarAgendamento(id));
+        assertTrue(erro.getMessage().contains("Pagamento via boleto exige 48h"));
+    }
+
+    // Helper para reduzir repetição de código
+    private Agendamento criarAgendamentoBase() {
+        Agendamento ag = new Agendamento();
+        ag.setMedico(new Medico());
+        ag.getMedico().setId(UUID.randomUUID());
+        ag.setPaciente(new Paciente());
+        ag.getPaciente().setId(UUID.randomUUID());
+        return ag;
     }
 }

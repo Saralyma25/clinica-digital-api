@@ -8,7 +8,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,73 +29,110 @@ public class AgendamentoService {
         this.pacienteRepository = pacienteRepository;
     }
 
-    // --- 1. O COMEÇO: Reservar a vaga (Status: EM_PROCESSAMENTO) ---
+    // --- 1. O AGENDAMENTO: Com Lógica de Bypass para Massa de Dados ---
+    @Transactional
     public Agendamento agendar(Agendamento agendamento) {
-        // 1. Validar se o Médico existe
+        // 1. Validar existência das entidades
         Medico medico = medicoRepository.findById(agendamento.getMedico().getId())
                 .orElseThrow(() -> new RuntimeException("Médico não encontrado."));
 
-        // 2. Validar se o Paciente existe
         Paciente paciente = pacienteRepository.findById(agendamento.getPaciente().getId())
                 .orElseThrow(() -> new RuntimeException("Paciente não encontrado."));
 
-        // 3. TRAVA DE ESPECIALIDADE 🚫
-        // Bloqueia se o paciente já tiver consulta "AGENDADO" ou "EM_PROCESSAMENTO" com essa especialidade
-        boolean jaTemConsulta = repository.existsByPacienteIdAndMedico_EspecialidadeAndStatusNot(
+        // 3.a Validação: Horário indisponível para o MÉDICO (Você já tem esta)
+        if (repository.existsByMedicoIdAndDataConsulta(medico.getId(), agendamento.getDataConsulta())) {
+            throw new RuntimeException("Horário indisponível para este médico.");
+        }
+
+// 3.b NOVA TRAVA: O PACIENTE não pode ter dois agendamentos no mesmo horário (Choque de Agenda)
+// Usamos o status diferente de CANCELADO para garantir que o paciente possa remarcar se cancelou a anterior
+        boolean pacienteOcupado = repository.existsByPacienteIdAndDataConsultaAndStatusNot(
                 paciente.getId(),
-                medico.getEspecialidade(),
+                agendamento.getDataConsulta(),
                 "CANCELADO"
         );
 
-        if (jaTemConsulta) {
-            throw new RuntimeException("Você já possui um agendamento em andamento com um " + medico.getEspecialidade() +
-                    ". Finalize ou cancele o anterior.");
+        if (pacienteOcupado) {
+            throw new RuntimeException("O paciente já possui um agendamento neste mesmo horário com outro profissional.");
         }
 
-        // 4. Regra de Horário 🕒
+
+        // 2. Trava de Especialidade (Regra 1.1): Impede duplicidade ativa
+        List<String> statusAtivos = List.of("EM_PROCESSAMENTO", "AGENDADO", "CONFIRMADO");
+        boolean jaTemConsultaAtiva = repository.existsByPacienteIdAndMedico_EspecialidadeAndStatusIn(
+                paciente.getId(),
+                medico.getEspecialidade(),
+                statusAtivos
+        );
+
+        if (jaTemConsultaAtiva) {
+            throw new RuntimeException("Você já possui um agendamento ativo para " + medico.getEspecialidade() +
+                    ". Cancele o atual antes de marcar um novo.");
+        }
+
+        // 3. Validações de Horário e Passado
         if (repository.existsByMedicoIdAndDataConsulta(medico.getId(), agendamento.getDataConsulta())) {
-            throw new RuntimeException("Horário indisponível (Já reservado).");
+            throw new RuntimeException("Horário indisponível para este médico.");
         }
 
-        // 5. Validar Passado
         if (agendamento.getDataConsulta().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Não é possível agendar para o passado.");
+            throw new RuntimeException("Não é possível agendar para uma data retroativa.");
         }
 
-        // 6. Inteligência Financeira 💰 (CORREÇÃO DE SEGURANÇA AQUI) 👇
-        // Usamos Boolean.TRUE.equals para evitar erro se o campo for nulo
+        // --- 🚀 LÓGICA DE BYPASS (Sugestão Sara: Forçar AGENDADO para criar massa) ---
         boolean ehParticular = Boolean.TRUE.equals(paciente.getAtendimentoParticular());
 
-        if (paciente.getPlano() == null || ehParticular) {
-            agendamento.setValorConsulta(medico.getValorConsulta());
-            agendamento.setStatusPagamento("PENDENTE");
+        if (!ehParticular) {
+            // FLUXO CONVÊNIO: Já nasce aprovado
+            agendamento.setValorConsulta(BigDecimal.ZERO);
+            agendamento.setStatusPagamento("CONVENIO_APROVADO");
+            agendamento.setStatus("AGENDADO");
         } else {
-            // É convênio
-            agendamento.setValorConsulta(java.math.BigDecimal.ZERO);
-            agendamento.setStatusPagamento("CONVENIO");
+            // FLUXO PARTICULAR: Hardcode temporário para gerar massa
+            agendamento.setValorConsulta(medico.getValorConsulta());
+
+            // Bypass: Forçamos AGENDADO para não cair no robô faxineiro
+            agendamento.setStatus("AGENDADO");
+            agendamento.setStatusPagamento("PAGAMENTO_SIMULADO_BYPASS");
         }
 
-        // 7. Configuração Final
+        // 4. Configuração de Auditoria Final e Salvamento
         agendamento.setMedico(medico);
         agendamento.setPaciente(paciente);
-        agendamento.setStatus("EM_PROCESSAMENTO"); // Status Temporário
+        agendamento.setDataCadastro(LocalDateTime.now());
 
         return repository.save(agendamento);
     }
 
-    // --- 2. O FINAL: Confirmar o Agendamento ---
+
+
+    // --- 2. CONFIRMAÇÃO: Mantida para casos de fluxo EM_PROCESSAMENTO futuro ---
+    @Transactional
     public void confirmarAgendamento(UUID id) {
         Agendamento agendamento = buscarPorId(id);
 
         if (!agendamento.getStatus().equals("EM_PROCESSAMENTO")) {
-            throw new RuntimeException("Este agendamento não está pendente de confirmação.");
+            throw new RuntimeException("Este agendamento já foi processado ou está cancelado.");
         }
 
-        agendamento.setStatus("AGENDADO"); // Oficializa
+        // Validação de Boleto (Regra 1.3.b)
+        if ("BOLETO".equalsIgnoreCase(agendamento.getFormaPagamento())) {
+            long horasAteConsulta = ChronoUnit.HOURS.between(LocalDateTime.now(), agendamento.getDataConsulta());
+            if (horasAteConsulta < 48) {
+                throw new RuntimeException("Pagamento via boleto exige 48h de antecedência.");
+            }
+        }
+
+        agendamento.setStatus("AGENDADO");
+
+        if (!"CONVENIO_APROVADO".equals(agendamento.getStatusPagamento())) {
+            agendamento.setStatusPagamento("PAGO");
+        }
+
         repository.save(agendamento);
     }
 
-    // --- Outros Métodos ---
+    // --- 3. MÉTODOS DE CONSULTA E CANCELAMENTO ---
     public List<Agendamento> listarTodos() {
         return repository.findAll();
     }
@@ -103,18 +142,23 @@ public class AgendamentoService {
                 .orElseThrow(() -> new RuntimeException("Agendamento não encontrado."));
     }
 
+    @Transactional
     public void cancelar(UUID id) {
         Agendamento agendamento = buscarPorId(id);
         agendamento.setStatus("CANCELADO");
         repository.save(agendamento);
     }
 
-    // --- O FAXINEIRO (Robô) 🤖 ---
-    @Scheduled(fixedRate = 60000) // Roda a cada 1 minuto
-    @Transactional // OBRIGATÓRIO para o delete funcionar
+    // --- 4. O FAXINEIRO (Limpeza Automática) 🤖 ---
+    @Scheduled(fixedRate = 60000)
+    @Transactional
     public void liberarHorariosTravados() {
+        // Remove apenas o que for rascunho (EM_PROCESSAMENTO) antigo
         LocalDateTime limite = LocalDateTime.now().minusMinutes(15);
-        repository.limparAgendamentosExpirados(limite);
-        // System.out.println("⏰ Faxineiro: Limpeza realizada.");
+        repository.deleteByStatusAndDataCadastroBefore("EM_PROCESSAMENTO", limite);
+
+
+
     }
+
 }

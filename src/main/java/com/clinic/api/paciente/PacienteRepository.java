@@ -11,6 +11,7 @@ public interface PacienteRepository extends JpaRepository<Paciente, UUID> {
 
     Optional<Paciente> findByCpf(String cpf);
     Optional<Paciente> findByEmail(String email);
+    Optional<Paciente> findByTelefone(String telefone);
 
     // Busca por nome parcial
     List<Paciente> findByNomeContainingIgnoreCase(String nome);

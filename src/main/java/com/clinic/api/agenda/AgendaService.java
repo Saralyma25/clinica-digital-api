@@ -44,38 +44,48 @@ public class AgendaService {
     public List<LocalDateTime> listarHorariosDisponiveis(UUID medicoId, LocalDate data) {
         List<LocalDateTime> horariosLivres = new ArrayList<>();
 
-        // 1. Pega a configuração do médico para aquele dia da semana (ex: SEGUNDA)
+        // 1. Busca os dados do médico para usar a duração personalizada
+        Medico medico = medicoRepository.findById(medicoId)
+                .orElseThrow(() -> new RuntimeException("Médico não encontrado."));
+
+        // 2. Pega a configuração de jornada do médico para aquele dia da semana (ex: MONDAY)
         var configOpt = configRepository.findByMedicoIdAndDiaSemana(medicoId, data.getDayOfWeek());
 
         // Se o médico não configurou esse dia ou está marcado como inativo
         if (configOpt.isEmpty() || !configOpt.get().getAtivo()) {
-            return horariosLivres; // Retorna lista vazia (Não atende hoje)
+            return horariosLivres; // Retorna lista vazia (Não atende neste dia)
         }
 
         ConfiguracaoAgenda config = configOpt.get();
-        LocalTime inicio = config.getHorarioInicio(); // 08:00
-        LocalTime fim = config.getHorarioFim();       // 18:00
+        LocalTime inicioDia = config.getHorarioInicio(); // Ex: 08:00
+        LocalTime fimDia = config.getHorarioFim();       // Ex: 18:00
 
-        // 2. Loop de 15 em 15 minutos para gerar os "slots"
-        LocalDateTime slotAtual = LocalDateTime.of(data, inicio);
-        LocalDateTime fimDoDia = LocalDateTime.of(data, fim);
+        // Pega a duração da consulta definida no cadastro do médico (default 15 se nulo)
+        int duracao = (medico.getDuracaoConsulta() != null) ? medico.getDuracaoConsulta() : 15;
 
-        while (slotAtual.isBefore(fimDoDia)) {
-            LocalDateTime fimDoSlot = slotAtual.plusMinutes(15); // Consulta dura 15min? Ou é só a grade?
+        // 3. Gerador de Slots (Fatiador de tempo)
+        LocalDateTime slotAtual = LocalDateTime.of(data, inicioDia);
+        LocalDateTime limiteFim = LocalDateTime.of(data, fimDia);
 
-            // 3. Verifica se tem BLOQUEIO nesse horário (Almoço, Férias)
+
+
+        while (slotAtual.plusMinutes(duracao).isBefore(limiteFim.plusMinutes(1)) ) {
+            LocalDateTime fimDoSlot = slotAtual.plusMinutes(duracao);
+
+            // 4. Verifica se existe BLOQUEIO nesse intervalo (Almoço, Férias, etc.)
+            // Usa a query personalizada do seu BloqueioAgendaRepository
             boolean temBloqueio = !bloqueioRepository.findBloqueiosNoIntervalo(medicoId, slotAtual, fimDoSlot).isEmpty();
 
-            // 4. Verifica se já tem AGENDAMENTO (Paciente marcou)
+            // 5. Verifica se já existe um AGENDAMENTO confirmado para este slot exato
             boolean jaAgendado = agendamentoRepository.existsByMedicoIdAndDataConsulta(medicoId, slotAtual);
 
-            // Se não tem bloqueio NEM agendamento, está livre!
+            // 6. Se o horário não estiver bloqueado nem ocupado, ele é uma opção livre!
             if (!temBloqueio && !jaAgendado) {
                 horariosLivres.add(slotAtual);
             }
 
-            // Pula para o próximo slot de 15 min
-            slotAtual = slotAtual.plusMinutes(15);
+            // Pula para o próximo slot de acordo com a duração da consulta
+            slotAtual = slotAtual.plusMinutes(duracao);
         }
 
         return horariosLivres;

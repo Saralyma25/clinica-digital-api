@@ -34,7 +34,7 @@ class MedicoServiceTest {
         Mockito.when(repository.findByCrm("12345-SP")).thenReturn(Optional.of(new Medico()));
 
         RuntimeException erro = assertThrows(RuntimeException.class, () -> service.cadastrar(medico));
-        Assertions.assertEquals("Já existe um médico com este CRM.", erro.getMessage());
+        Assertions.assertEquals("Já existe um médico cadastrado com este CRM.", erro.getMessage());
     }
 
     @Test

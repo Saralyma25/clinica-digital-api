@@ -15,15 +15,21 @@ public class MedicoService {
     }
 
     // --- C: CREATE (Cadastrar) ---
+    // Local: com.clinic.api.medico.MedicoService.java
+
     public Medico cadastrar(Medico medico) {
-        // Regras de validação antes de salvar
+        // 1. TRAVA: CRM (Não pode repetir nunca)
         if (repository.findByCrm(medico.getCrm()).isPresent()) {
-            throw new RuntimeException("Já existe um médico com este CRM.");
+            throw new RuntimeException("Já existe um médico cadastrado com este CRM.");
         }
+
+        // 2. TRAVA: E-mail (Identificador único de login)
         if (repository.findByEmail(medico.getEmail()).isPresent()) {
-            throw new RuntimeException("Este e-mail já está em uso.");
+            throw new RuntimeException("Este e-mail já está em uso por outro profissional.");
         }
-        // O método .save() cria o registro no banco
+
+        // Nota: Removi propositalmente a trava de Nome para permitir homônimos.
+
         return repository.save(medico);
     }
 
@@ -40,18 +46,23 @@ public class MedicoService {
         return medico.get();
     }
 
+
     // --- U: UPDATE (Atualizar) ---
     public Medico atualizar(UUID id, Medico medicoAtualizado) {
         // 1. Verifica se o médico existe no banco
         Medico medicoExistente = buscarPorId(id);
 
-        // 2. Atualiza os dados (Você decide o que pode ser mudado)
+        // 2. Atualiza os dados básicos
         medicoExistente.setNome(medicoAtualizado.getNome());
         medicoExistente.setEspecialidade(medicoAtualizado.getEspecialidade());
         medicoExistente.setValorConsulta(medicoAtualizado.getValorConsulta());
-        // Obs: Geralmente não deixamos mudar CRM ou Email na edição simples
 
-        // 3. O .save() vê que tem ID e atualiza
+        // 3. NOVOS CAMPOS: Atualiza a configuração da agenda (Dia 06)
+        medicoExistente.setHoraInicio(medicoAtualizado.getHoraInicio());
+        medicoExistente.setHoraFim(medicoAtualizado.getHoraFim());
+        medicoExistente.setDuracaoConsulta(medicoAtualizado.getDuracaoConsulta());
+
+        // 4. O .save() vê que tem ID e faz o UPDATE no banco
         return repository.save(medicoExistente);
     }
 
