@@ -1,7 +1,9 @@
-package com.clinic.api.dashboard;
+package com.clinic.api.dashboard.controller;
 
 import com.clinic.api.dashboard.dto.DashboardResumoDTO;
 import com.clinic.api.dashboard.dto.GraficoFaturamentoDTO;
+// IMPORTANTE: O Import do Service tem que estar aqui
+import com.clinic.api.dashboard.service.DashboardService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,9 +14,10 @@ import java.util.UUID;
 @RequestMapping("/dashboard")
 public class DashboardController {
 
-    private final com.clinic.api.dashboard.DashboardService service;
+    private final DashboardService service;
 
-    public DashboardController(com.clinic.api.dashboard.DashboardService service) {
+    // O Spring injeta o Service aqui automaticamente se a anotação @Service estiver na classe lá em cima
+    public DashboardController(DashboardService service) {
         this.service = service;
     }
 

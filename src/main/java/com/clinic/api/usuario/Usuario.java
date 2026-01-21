@@ -1,121 +1,81 @@
 package com.clinic.api.usuario;
 
+import com.clinic.api.usuario.domain.UserRole;
 import jakarta.persistence.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
+import java.util.Objects;
 
-@Table(name = "usuarios")
+@Table(name = "tb_usuario")
 @Entity(name = "Usuario")
-public class Usuario implements UserDetails {
+public class Usuario implements UserDetails { // Necessário para compilar o Service
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    private String email;
+    @Column(nullable = false, unique = true)
+    private String email; // Padronizado para email
+
+    @Column(nullable = false)
     private String senha;
 
-    @Enumerated(EnumType.STRING)
-    private UserRole role;
+    @Enumerated(EnumType.STRING) // Garante que salve "ADMIN" ou "STAFF" como texto
+    @Column(nullable = false)
+    private UserRole role; // Usando seu Enum
 
-    // Construtor Padrão (Exigido pelo JPA)
-    public Usuario() {
-    }
+    @Column(nullable = false)
+    private Boolean ativo = true;
 
-    // Construtor Completo
-    public Usuario(UUID id, String email, String senha, UserRole role) {
-        this.id = id;
+    public Usuario() {}
+
+    public Usuario(String email, String senha, UserRole role) {
         this.email = email;
         this.senha = senha;
         this.role = role;
+        this.ativo = true;
     }
 
-    // --- MÉTODOS OBRIGATÓRIOS DO USERDETAILS ---
-
+    // --- Métodos UserDetails (Obrigatórios para o Spring Security compilar) ---
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Mapeia a role para o padrão do Spring Security
-        if (this.role == UserRole.ADMIN) {
-            return List.of(
-                    new SimpleGrantedAuthority("ROLE_ADMIN"),
-                    new SimpleGrantedAuthority("ROLE_MEDICO"),
-                    new SimpleGrantedAuthority("ROLE_RECEPCAO")
-            );
-        }
         return List.of(new SimpleGrantedAuthority("ROLE_" + this.role.name()));
     }
 
     @Override
-    public String getPassword() {
-        return this.senha;
-    }
+    public String getPassword() { return senha; }
 
     @Override
-    public String getUsername() {
-        return this.email;
-    }
+    public String getUsername() { return email; }
 
     @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
+    public boolean isAccountNonExpired() { return true; }
 
     @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
+    public boolean isAccountNonLocked() { return true; }
 
     @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
+    public boolean isCredentialsNonExpired() { return true; }
 
     @Override
-    public boolean isEnabled() {
-        return true;
-    }
+    public boolean isEnabled() { return ativo; }
 
-    // --- GETTERS E SETTERS MANUAIS ---
+    // --- Getters e Setters Manuais ---
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+    public String getSenha() { return senha; }
+    public void setSenha(String senha) { this.senha = senha; }
+    public UserRole getRole() { return role; }
+    public void setRole(UserRole role) { this.role = role; }
+    public Boolean getAtivo() { return ativo; }
+    public void setAtivo(Boolean ativo) { this.ativo = ativo; }
 
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getSenha() {
-        return senha;
-    }
-
-    public void setSenha(String senha) {
-        this.senha = senha;
-    }
-
-    public UserRole getRole() {
-        return role;
-    }
-
-    public void setRole(UserRole role) {
-        this.role = role;
-    }
-
-    // Equals e HashCode manuais baseados no ID para garantir integridade em Sets
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -125,7 +85,5 @@ public class Usuario implements UserDetails {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
+    public int hashCode() { return Objects.hash(id); }
 }

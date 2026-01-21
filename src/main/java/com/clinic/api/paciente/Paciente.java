@@ -1,20 +1,17 @@
-package com.clinic.api.paciente;
+package com.clinic.api.paciente; // Alterado para a raiz
 
 import com.clinic.api.medico.Medico;
 import com.clinic.api.plano.Plano;
+
+import com.clinic.api.usuario.Usuario;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.Objects;
 
-@Table(name = "tb_paciente", uniqueConstraints = {
-        @UniqueConstraint(columnNames = "cpf"),
-        @UniqueConstraint(columnNames = "email")
-        // REMOVIDO: Telefone não deve ser uniqueConstraint se puder ser nulo em alguns bancos,
-        // mas vamos manter a validação via código/DTO para garantir.
-})
 @Entity(name = "Paciente")
+@Table(name = "tb_paciente")
 public class Paciente {
 
     @Id
@@ -24,25 +21,24 @@ public class Paciente {
     @Column(nullable = false)
     private String nome;
 
-    @Column(nullable = false, unique = true)
-    private String email;
+    // O e-mail agora fica na tb_usuario, mas se você quiser manter um
+    // e-mail de contato secundário aqui, pode. Caso contrário, usamos o do Usuario.
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "usuario_id", referencedColumnName = "id")
+    private Usuario usuario;
 
-    // ALTERADO: nullable = true (Google não manda telefone)
-    @Column(nullable = true) 
-    private String telefone;
-
-    // ALTERADO: nullable = true (Google não manda CPF)
-    @Column(length = 14, unique = true, nullable = true) 
+    @Column(length = 14, unique = true)
     private String cpf;
 
-    // ALTERADO: nullable = true (Google nem sempre manda data de nascimento)
-    @Column(name = "data_nascimento", nullable = true) 
+    private String telefone;
+
+    @Column(name = "data_nascimento")
     private LocalDate dataNascimento;
 
     @Column(name = "cadastro_completo")
-    private Boolean cadastroCompleto = false; // Novo campo para controlar o fluxo
+    private Boolean cadastroCompleto = false;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "plano_id")
     private Plano plano;
 
@@ -55,11 +51,11 @@ public class Paciente {
     @Column(name = "atendimento_particular")
     private Boolean atendimentoParticular;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "medico_id")
     private Medico medico;
 
-    @Column(name = "data_cadastro")
+    @Column(name = "data_cadastro", updatable = false)
     private LocalDateTime dataCadastro;
 
     public Paciente() {}
@@ -68,36 +64,49 @@ public class Paciente {
     public void prePersist() {
         if(this.dataCadastro == null) this.dataCadastro = LocalDateTime.now();
         if(this.cadastroCompleto == null) this.cadastroCompleto = false;
+        if(this.atendimentoParticular == null) this.atendimentoParticular = false;
     }
 
-    // --- Getters e Setters (Atualizados) ---
+    // --- GETTERS E SETTERS MANUAIS (Padrão Sem Lombok) ---
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
+
     public String getNome() { return nome; }
     public void setNome(String nome) { this.nome = nome; }
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-    public String getTelefone() { return telefone; }
-    public void setTelefone(String telefone) { this.telefone = telefone; }
+
+    public Usuario getUsuario() { return usuario; }
+    public void setUsuario(Usuario usuario) { this.usuario = usuario; }
+
     public String getCpf() { return cpf; }
     public void setCpf(String cpf) { this.cpf = cpf; }
+
+    public String getTelefone() { return telefone; }
+    public void setTelefone(String telefone) { this.telefone = telefone; }
+
     public LocalDate getDataNascimento() { return dataNascimento; }
     public void setDataNascimento(LocalDate dataNascimento) { this.dataNascimento = dataNascimento; }
-    public Plano getPlano() { return plano; }
-    public void setPlano(Plano plano) { this.plano = plano; }
-    public String getNumeroCarteirinha() { return numeroCarteirinha; }
-    public void setNumeroCarteirinha(String numeroCarteirinha) { this.numeroCarteirinha = numeroCarteirinha; }
-    public LocalDate getValidadeCarteirinha() { return validadeCarteirinha; }
-    public void setValidadeCarteirinha(LocalDate validadeCarteirinha) { this.validadeCarteirinha = validadeCarteirinha; }
-    public Boolean getAtendimentoParticular() { return atendimentoParticular; }
-    public void setAtendimentoParticular(Boolean atendimentoParticular) { this.atendimentoParticular = atendimentoParticular; }
-    public Medico getMedico() { return medico; }
-    public void setMedico(Medico medico) { this.medico = medico; }
-    public LocalDateTime getDataCadastro() { return dataCadastro; }
-    public void setDataCadastro(LocalDateTime dataCadastro) { this.dataCadastro = dataCadastro; }
-    
+
     public Boolean getCadastroCompleto() { return cadastroCompleto; }
     public void setCadastroCompleto(Boolean cadastroCompleto) { this.cadastroCompleto = cadastroCompleto; }
+
+    public Plano getPlano() { return plano; }
+    public void setPlano(Plano plano) { this.plano = plano; }
+
+    public String getNumeroCarteirinha() { return numeroCarteirinha; }
+    public void setNumeroCarteirinha(String numeroCarteirinha) { this.numeroCarteirinha = numeroCarteirinha; }
+
+    public LocalDate getValidadeCarteirinha() { return validadeCarteirinha; }
+    public void setValidadeCarteirinha(LocalDate validadeCarteirinha) { this.validadeCarteirinha = validadeCarteirinha; }
+
+    public Boolean getAtendimentoParticular() { return atendimentoParticular; }
+    public void setAtendimentoParticular(Boolean atendimentoParticular) { this.atendimentoParticular = atendimentoParticular; }
+
+    public Medico getMedico() { return medico; }
+    public void setMedico(Medico medico) { this.medico = medico; }
+
+    public LocalDateTime getDataCadastro() { return dataCadastro; }
+    public void setDataCadastro(LocalDateTime dataCadastro) { this.dataCadastro = dataCadastro; }
 
     @Override
     public boolean equals(Object o) {

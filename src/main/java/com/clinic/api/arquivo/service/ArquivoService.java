@@ -11,65 +11,77 @@ import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
 public class ArquivoService {
 
-    // Define a pasta onde os arquivos ficarão salvos
+    // Define a pasta "uploads" na raiz do projeto
     private final Path diretorioArquivos;
 
     public ArquivoService() {
-        // Pega o caminho onde o projeto está rodando (C:\Users\Sara\IdeaProjects\clinica-digital-api)
-        String pastaProjeto = System.getProperty("user.dir");
-
-        // Define que salvaremos na subpasta "/uploads"
-        this.diretorioArquivos = Paths.get(pastaProjeto, "uploads").toAbsolutePath().normalize();
+        // Pega o diretório atual de execução e adiciona a pasta "uploads"
+        this.diretorioArquivos = Paths.get(System.getProperty("user.dir"))
+                .resolve("uploads")
+                .toAbsolutePath()
+                .normalize();
 
         try {
-            // Cria a pasta "uploads" se ela não existir
             Files.createDirectories(this.diretorioArquivos);
-            System.out.println("📂 Pasta de Uploads configurada em: " + this.diretorioArquivos.toString());
-        } catch (Exception ex) {
-            throw new RuntimeException("Não foi possível criar o diretório de upload!", ex);
+        } catch (IOException ex) {
+            throw new RuntimeException("Não foi possível criar o diretório de uploads.", ex);
         }
     }
 
-    // --- SALVAR ARQUIVO ---
+    /**
+     * Salva o arquivo no disco e retorna o NOME ÚNICO gerado.
+     */
     public String salvarArquivo(MultipartFile arquivo) {
-        // 1. Pega apenas o nome do arquivo, removendo qualquer caminho enviado pelo usuário
-        String nomeOriginal = StringUtils.cleanPath(arquivo.getOriginalFilename());
+        // Limpa o nome do arquivo para evitar ataques de path traversal (../)
+        String nomeOriginal = StringUtils.cleanPath(Objects.requireNonNull(arquivo.getOriginalFilename()));
 
-        // 2. Defesa contra Path Traversal: impede o uso de ".."
         if (nomeOriginal.contains("..")) {
-            throw new RuntimeException("Nome de arquivo inválido: " + nomeOriginal);
+            throw new RuntimeException("Nome de arquivo inválido (contém sequência de diretório): " + nomeOriginal);
         }
 
-        // 3. Gera o nome único com UUID
+        // Gera um nome único: UUID + _ + NomeOriginal (ex: 550e8400-e29b..._exame.pdf)
         String nomeUnico = UUID.randomUUID().toString() + "_" + nomeOriginal;
 
         try {
+            // Resolve o caminho completo
             Path destino = this.diretorioArquivos.resolve(nomeUnico);
-            Files.copy(arquivo.getInputStream(), destino);
-            return nomeUnico;
+
+            // Copia (substituindo se existir por azar um igual)
+            Files.copy(arquivo.getInputStream(), destino, StandardCopyOption.REPLACE_EXISTING);
+
+            return nomeUnico; // Retorna apenas o nome para salvar no banco (na entidade Documento)
         } catch (IOException ex) {
             throw new RuntimeException("Erro ao salvar arquivo " + nomeOriginal, ex);
         }
     }
 
-    // --- LER ARQUIVO (Download/Visualização) ---
+    /**
+     * Carrega o arquivo do disco como um Resource (para download).
+     */
     public Resource carregarArquivo(String nomeArquivo) {
         try {
             Path caminhoArquivo = this.diretorioArquivos.resolve(nomeArquivo).normalize();
             Resource recurso = new UrlResource(caminhoArquivo.toUri());
 
-            if (recurso.exists()) {
+            if (recurso.exists() || recurso.isReadable()) {
                 return recurso;
             } else {
-                throw new RuntimeException("Arquivo não encontrado: " + nomeArquivo);
+                throw new RuntimeException("Arquivo não encontrado ou ilegível: " + nomeArquivo);
             }
         } catch (MalformedURLException ex) {
-            throw new RuntimeException("Arquivo não encontrado: " + nomeArquivo, ex);
+            throw new RuntimeException("Erro ao buscar caminho do arquivo: " + nomeArquivo, ex);
         }
+    }
+
+    // Método auxiliar caso precise do caminho completo (usado por logs ou auditoria)
+    public String getCaminhoCompleto(String nomeArquivo) {
+        return this.diretorioArquivos.resolve(nomeArquivo).toString();
     }
 }

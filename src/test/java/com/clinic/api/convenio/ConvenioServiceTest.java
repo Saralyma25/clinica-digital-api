@@ -1,5 +1,9 @@
-package com.clinic.api.convenio;
+package com.clinic.api.convenio.service;
 
+import com.clinic.api.convenio.Convenio;
+import com.clinic.api.convenio.domain.ConvenioRepository;
+import com.clinic.api.convenio.dto.ConvenioRequest;
+import com.clinic.api.convenio.dto.ConvenioResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -7,7 +11,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,81 +22,176 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ConvenioServiceTest {
 
+    @Mock
+    private ConvenioRepository repository;
+
     @InjectMocks
     private ConvenioService service;
 
-    @Mock private ConvenioRepository repository;
+    // --- TESTES DE CADASTRO ---
 
-    @Test @DisplayName("✅ 1. Deve cadastrar convênio")
+    @Test
+    @DisplayName("1. Deve cadastrar convênio com sucesso")
     void cadastrarSucesso() {
-        Convenio c = new Convenio(); c.setNome("Unimed");
-        when(repository.findByNomeContainingIgnoreCase(any())).thenReturn(Collections.emptyList());
-        when(repository.save(any())).thenReturn(c);
-        assertNotNull(service.cadastrar(c));
-    }
+        // Arrange
+        ConvenioRequest request = criarRequest("Unimed", "123456");
 
-    @Test @DisplayName("✅ 2. Deve listar todos os convênios")
-    void listarTodos() {
-        when(repository.findAll()).thenReturn(List.of(new Convenio()));
-        assertEquals(1, service.listarTodos().size());
-    }
+        when(repository.existsByNomeIgnoreCase(request.getNome())).thenReturn(false);
+        when(repository.existsByRegistroAns(request.getRegistroAns())).thenReturn(false);
+        when(repository.save(any(Convenio.class))).thenAnswer(i -> {
+            Convenio c = i.getArgument(0);
+            c.setId(UUID.randomUUID());
+            return c;
+        });
 
-    @Test @DisplayName("✅ 3. Deve buscar convênio por ID")
-    void buscarPorId() {
-        UUID id = UUID.randomUUID();
-        when(repository.findById(id)).thenReturn(Optional.of(new Convenio()));
-        assertNotNull(service.buscarPorId(id));
-    }
+        // Act
+        ConvenioResponse response = service.cadastrar(request);
 
-    @Test @DisplayName("❌ 4. Erro ao buscar convênio inexistente")
-    void buscarErro() {
-        when(repository.findById(any())).thenReturn(Optional.empty());
-        assertThrows(RuntimeException.class, () -> service.buscarPorId(UUID.randomUUID()));
-    }
-
-    @Test @DisplayName("✅ 5. Deve excluir convênio")
-    void excluir() {
-        UUID id = UUID.randomUUID();
-        assertDoesNotThrow(() -> service.excluir(id));
-        verify(repository).deleteById(id);
+        // Assert
+        assertNotNull(response.getId());
+        assertEquals("Unimed", response.getNome());
+        assertEquals("123456", response.getRegistroAns());
+        verify(repository).save(any(Convenio.class));
     }
 
     @Test
-    @DisplayName("✅ 6. Deve validar busca de nome existente")
-    void buscarNomeCase() {
-        Convenio c = new Convenio();
-        c.setNome("Bradesco");
+    @DisplayName("2. Deve lançar exceção se nome do convênio já existe")
+    void cadastrarErroNomeDuplicado() {
+        // Arrange
+        ConvenioRequest request = criarRequest("Unimed", "123456");
+        when(repository.existsByNomeIgnoreCase(request.getNome())).thenReturn(true);
 
-        // Configuramos o mock para retornar a lista na busca E o objeto no salvamento
-        when(repository.findByNomeContainingIgnoreCase(anyString())).thenReturn(List.of(c));
-        when(repository.save(any(Convenio.class))).thenReturn(c); // <--- Adicione esta linha
-
-        Convenio salvo = service.cadastrar(c);
-        assertNotNull(salvo);
-        assertEquals("Bradesco", salvo.getNome());
+        // Act & Assert
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> service.cadastrar(request));
+        assertEquals("Já existe um convênio com o nome: Unimed", ex.getMessage());
+        verify(repository, never()).save(any());
     }
 
-    @Test @DisplayName("✅ 7. Deve validar se nome do convênio não é vazio")
-    void nomeVazio() {
-        Convenio c = new Convenio();
-        assertDoesNotThrow(() -> service.cadastrar(c));
+    @Test
+    @DisplayName("3. Deve lançar exceção se registro ANS já existe")
+    void cadastrarErroAnsDuplicado() {
+        // Arrange
+        ConvenioRequest request = criarRequest("Bradesco", "999888");
+        when(repository.existsByNomeIgnoreCase(request.getNome())).thenReturn(false);
+        when(repository.existsByRegistroAns(request.getRegistroAns())).thenReturn(true);
+
+        // Act & Assert
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> service.cadastrar(request));
+        assertEquals("Já existe um convênio com este registro ANS.", ex.getMessage());
+        verify(repository, never()).save(any());
     }
 
-    @Test @DisplayName("✅ 8. Deve permitir múltiplos convênios na lista")
-    void listaMultipla() {
-        when(repository.findAll()).thenReturn(List.of(new Convenio(), new Convenio()));
-        assertEquals(2, service.listarTodos().size());
+    // --- TESTES DE LISTAGEM ---
+
+    @Test
+    @DisplayName("4. Deve listar todos filtrando apenas os ativos")
+    void listarTodosFiltrandoAtivos() {
+        // Arrange
+        Convenio c1 = new Convenio("Unimed", "111", 30);
+        c1.setAtivo(true);
+
+        Convenio c2 = new Convenio("Amil", "222", 30);
+        c2.setAtivo(false); // Inativo
+
+        when(repository.findAll()).thenReturn(List.of(c1, c2));
+
+        // Act
+        List<ConvenioResponse> lista = service.listarTodos();
+
+        // Assert
+        assertEquals(1, lista.size());
+        assertEquals("Unimed", lista.get(0).getNome());
     }
 
-    @Test @DisplayName("✅ 9. Deve chamar o save do repository")
-    void verificarSave() {
-        service.cadastrar(new Convenio());
-        verify(repository, times(1)).save(any());
+    @Test
+    @DisplayName("5. Deve retornar lista vazia se não houver convênios")
+    void listarTodosVazio() {
+        when(repository.findAll()).thenReturn(List.of());
+
+        List<ConvenioResponse> lista = service.listarTodos();
+
+        assertTrue(lista.isEmpty());
     }
 
-    @Test @DisplayName("✅ 10. Deve garantir retorno de lista vazia se não houver convênios")
-    void listaVazia() {
-        when(repository.findAll()).thenReturn(Collections.emptyList());
-        assertTrue(service.listarTodos().isEmpty());
+    // --- TESTES DE BUSCA POR ID ---
+
+    @Test
+    @DisplayName("6. Deve buscar por ID com sucesso")
+    void buscarPorIdSucesso() {
+        UUID id = UUID.randomUUID();
+        Convenio convenio = new Convenio("SulAmerica", "333", 15);
+        convenio.setId(id);
+
+        when(repository.findById(id)).thenReturn(Optional.of(convenio));
+
+        ConvenioResponse response = service.buscarPorId(id);
+
+        assertEquals(id, response.getId());
+        assertEquals("SulAmerica", response.getNome());
+    }
+
+    @Test
+    @DisplayName("7. Deve lançar erro ao buscar ID inexistente")
+    void buscarPorIdNaoEncontrado() {
+        UUID id = UUID.randomUUID();
+        when(repository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(RuntimeException.class, () -> service.buscarPorId(id));
+    }
+
+    // --- TESTES DE BUSCA POR NOME ---
+
+    @Test
+    @DisplayName("8. Deve buscar por nome filtrando ativos")
+    void buscarPorNomeSucesso() {
+        String termo = "Uni";
+        Convenio c1 = new Convenio("Unimed", "111", 30); c1.setAtivo(true);
+        Convenio c2 = new Convenio("Universal", "222", 30); c2.setAtivo(false); // Inativo
+
+        when(repository.findByNomeContainingIgnoreCase(termo)).thenReturn(List.of(c1, c2));
+
+        List<ConvenioResponse> resultado = service.buscarPorNome(termo);
+
+        assertEquals(1, resultado.size());
+        assertEquals("Unimed", resultado.get(0).getNome());
+    }
+
+    // --- TESTES DE EXCLUSÃO ---
+
+    @Test
+    @DisplayName("9. Deve excluir logicamente (Soft Delete)")
+    void excluirSucesso() {
+        // Arrange
+        UUID id = UUID.randomUUID();
+        Convenio convenio = new Convenio("Unimed", "111", 30);
+        convenio.setAtivo(true);
+
+        when(repository.findById(id)).thenReturn(Optional.of(convenio));
+
+        // Act
+        service.excluir(id);
+
+        // Assert
+        assertFalse(convenio.getAtivo()); // Verifica se mudou para false
+        verify(repository).save(convenio); // Verifica se salvou a alteração
+    }
+
+    @Test
+    @DisplayName("10. Deve lançar erro ao tentar excluir convênio inexistente")
+    void excluirNaoEncontrado() {
+        UUID id = UUID.randomUUID();
+        when(repository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(RuntimeException.class, () -> service.excluir(id));
+        verify(repository, never()).save(any());
+    }
+
+    // --- Helper ---
+    private ConvenioRequest criarRequest(String nome, String ans) {
+        ConvenioRequest req = new ConvenioRequest();
+        req.setNome(nome);
+        req.setRegistroAns(ans);
+        req.setDiasParaPagamento(30);
+        return req;
     }
 }

@@ -3,7 +3,6 @@ package com.clinic.api.medico.dto;
 import com.clinic.api.medico.enun.Especialidade;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
 public class MedicoRequest {
@@ -15,13 +14,9 @@ public class MedicoRequest {
     @Email(message = "Email inválido")
     private String email;
 
-    @NotBlank(message = "CRM é obrigatório")
+    // Removido @NotBlank e @NotNull para permitir o primeiro acesso rápido
     private String crm;
-
-    @NotNull(message = "Especialidade é obrigatória")
-    private Especialidade especialidade; // ALTERADO: De String para Especialidade
-
-    @NotNull(message = "Valor da consulta é obrigatório")
+    private Especialidade especialidade;
     private BigDecimal valorConsulta;
 
     // --- Getters e Setters ---
@@ -34,7 +29,6 @@ public class MedicoRequest {
     public String getCrm() { return crm; }
     public void setCrm(String crm) { this.crm = crm; }
 
-    // CORREÇÃO: O retorno agora é o Enum Especialidade
     public Especialidade getEspecialidade() { return especialidade; }
     public void setEspecialidade(Especialidade especialidade) { this.especialidade = especialidade; }
 

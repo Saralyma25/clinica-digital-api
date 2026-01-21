@@ -1,118 +1,147 @@
-package com.clinic.api.medico;
+package com.clinic.api.medico.service;
 
-import org.junit.jupiter.api.*;
+import com.clinic.api.medico.Medico;
+import com.clinic.api.medico.domain.MedicoRepository;
+import com.clinic.api.medico.dto.MedicoBasicoRequest;
+import com.clinic.api.medico.dto.MedicoRequest;
+import com.clinic.api.medico.dto.MedicoResponse;
+import com.clinic.api.medico.enun.Especialidade;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import java.util.*;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class MedicoServiceTest {
 
-    @InjectMocks
-    private MedicoService service;
+    @Mock private MedicoRepository repository;
+    @InjectMocks private MedicoService service;
 
-    @Mock
-    private MedicoRepository repository;
+    @Test
+    @DisplayName("1. Cadastro Rápido: Sucesso")
+    void cadastroRapidoSucesso() {
+        MedicoBasicoRequest req = new MedicoBasicoRequest("Dr. Teste", "teste@email.com", UUID.randomUUID());
+        when(repository.findByUsuarioEmail(any())).thenReturn(Optional.empty());
+        when(repository.save(any())).thenAnswer(i -> {
+            Medico m = i.getArgument(0); m.setId(UUID.randomUUID()); return m;
+        });
 
-    private Medico medicoPadrao;
-
-    @BeforeEach
-    void setup() {
-        medicoPadrao = new Medico();
-        medicoPadrao.setCrm("12345-SP");
-        medicoPadrao.setEmail("medico@clinica.com");
-        medicoPadrao.setNome("Dr. Teste");
+        MedicoResponse resp = service.cadastrarRapido(req);
+        assertNotNull(resp.getId());
+        assertEquals("Dr. Teste", resp.getNome());
     }
 
     @Test
-    @DisplayName("❌ 1. Deve barrar CRM duplicado")
-    void crmDuplicado() {
-        when(repository.findByCrm(anyString())).thenReturn(Optional.of(new Medico()));
-        assertThrows(RuntimeException.class, () -> service.cadastrar(medicoPadrao));
+    @DisplayName("2. Cadastro Rápido: Erro Email Duplicado")
+    void cadastroRapidoErroEmail() {
+        MedicoBasicoRequest req = new MedicoBasicoRequest("Dr. Teste", "existe@email.com", UUID.randomUUID());
+        when(repository.findByUsuarioEmail(any())).thenReturn(Optional.of(new Medico()));
+        assertThrows(RuntimeException.class, () -> service.cadastrarRapido(req));
     }
 
     @Test
-    @DisplayName("❌ 2. Deve barrar Email duplicado")
-    void emailDuplicado() {
-        when(repository.findByCrm(anyString())).thenReturn(Optional.empty());
-        when(repository.findByEmail(anyString())).thenReturn(Optional.of(new Medico()));
-        assertThrows(RuntimeException.class, () -> service.cadastrar(medicoPadrao));
+    @DisplayName("3. Cadastro Completo: Sucesso")
+    void cadastroCompletoSucesso() {
+        MedicoRequest req = new MedicoRequest();
+        req.setNome("Dr. House");
+        req.setEmail("house@email.com");
+        req.setCrm("12345");
+        req.setEspecialidade(Especialidade.CARDIOLOGIA);
+
+        when(repository.findByUsuarioEmail(any())).thenReturn(Optional.empty());
+        when(repository.existsByCrm(any())).thenReturn(false);
+        when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        MedicoResponse resp = service.cadastrarCompleto(req);
+        assertEquals("12345", resp.getCrm());
     }
 
     @Test
-    @DisplayName("✅ 3. Deve cadastrar com sucesso")
-    void cadastrarSucesso() {
-        when(repository.findByCrm(anyString())).thenReturn(Optional.empty());
-        when(repository.findByEmail(anyString())).thenReturn(Optional.empty());
-        when(repository.save(any())).thenReturn(medicoPadrao);
-
-        Medico salvo = service.cadastrar(medicoPadrao);
-        assertNotNull(salvo);
-        verify(repository, times(1)).save(any());
+    @DisplayName("4. Cadastro Completo: Erro CRM Duplicado")
+    void cadastroCompletoErroCRM() {
+        MedicoRequest req = new MedicoRequest();
+        req.setCrm("12345");
+        when(repository.findByUsuarioEmail(any())).thenReturn(Optional.empty());
+        when(repository.existsByCrm("12345")).thenReturn(true);
+        assertThrows(RuntimeException.class, () -> service.cadastrarCompleto(req));
     }
 
     @Test
-    @DisplayName("✅ 4. Deve buscar por ID com sucesso")
+    @DisplayName("5. Listar Ativos: Filtra inativos")
+    void listarAtivos() {
+        Medico m1 = new Medico(); m1.setAtivo(true);
+        Medico m2 = new Medico(); m2.setAtivo(false);
+        when(repository.findAll()).thenReturn(List.of(m1, m2));
+
+        List<MedicoResponse> lista = service.listarTodosAtivos();
+        assertEquals(1, lista.size());
+    }
+
+    @Test
+    @DisplayName("6. Buscar por ID: Sucesso")
     void buscarIdSucesso() {
         UUID id = UUID.randomUUID();
-        when(repository.findById(id)).thenReturn(Optional.of(medicoPadrao));
+        when(repository.findById(id)).thenReturn(Optional.of(new Medico()));
         assertNotNull(service.buscarPorId(id));
     }
 
     @Test
-    @DisplayName("❌ 5. Deve dar erro ao buscar ID inexistente")
-    void buscarIdErro() {
-        when(repository.findById(any())).thenReturn(Optional.empty());
-        assertThrows(RuntimeException.class, () -> service.buscarPorId(UUID.randomUUID()));
+    @DisplayName("7. Buscar por CRM: Sucesso")
+    void buscarCrmSucesso() {
+        when(repository.findByCrm("123")).thenReturn(Optional.of(new Medico()));
+        assertNotNull(service.buscarPorCrm("123"));
     }
 
     @Test
-    @DisplayName("✅ 6. Deve listar todos os médicos")
-    void listarTodos() {
-        when(repository.findAll()).thenReturn(List.of(medicoPadrao, medicoPadrao));
-        assertEquals(2, service.listarTodos().size());
+    @DisplayName("8. Buscar por Nome: Sucesso")
+    void buscarNomeSucesso() {
+        when(repository.findByNomeContainingIgnoreCase("Dr")).thenReturn(List.of(new Medico()));
+        assertFalse(service.buscarPorNome("Dr").isEmpty());
     }
 
     @Test
-    @DisplayName("✅ 7. Deve atualizar dados e configurações de agenda")
+    @DisplayName("9. Atualizar: Muda status para completo se preencher CRM")
     void atualizarSucesso() {
         UUID id = UUID.randomUUID();
-        Medico novosDados = new Medico();
-        novosDados.setNome("Novo Nome");
-        novosDados.setDuracaoConsulta(30);
+        Medico medico = new Medico();
+        medico.setCadastroCompleto(false);
 
-        when(repository.findById(id)).thenReturn(Optional.of(medicoPadrao));
+        MedicoRequest req = new MedicoRequest();
+        req.setCrm("999");
+        req.setEspecialidade(Especialidade.ORTOPEDIA);
+
+        when(repository.findById(id)).thenReturn(Optional.of(medico));
         when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        Medico atualizado = service.atualizar(id, novosDados);
-        assertEquals("Novo Nome", atualizado.getNome());
-        assertEquals(30, atualizado.getDuracaoConsulta());
+        MedicoResponse resp = service.atualizar(id, req);
+
+        // Verifica se a regra de negócio funcionou
+        assertTrue(resp.isCadastroCompleto());
+        assertEquals("999", resp.getCrm());
     }
 
     @Test
-    @DisplayName("✅ 8. Deve excluir médico com sucesso")
+    @DisplayName("10. Excluir: Soft Delete")
     void excluirSucesso() {
         UUID id = UUID.randomUUID();
-        when(repository.existsById(id)).thenReturn(true);
-        assertDoesNotThrow(() -> service.excluir(id));
-        verify(repository).deleteById(id);
-    }
+        Medico m = new Medico(); m.setAtivo(true);
 
-    @Test
-    @DisplayName("❌ 9. Deve falhar ao excluir médico inexistente")
-    void excluirErro() {
-        when(repository.existsById(any())).thenReturn(false);
-        assertThrows(RuntimeException.class, () -> service.excluir(UUID.randomUUID()));
-    }
+        when(repository.findById(id)).thenReturn(Optional.of(m));
 
-    @Test
-    @DisplayName("✅ 10. Deve buscar médicos por nome (Contendo texto)")
-    void buscarNome() {
-        when(repository.findByNomeContainingIgnoreCase("Teste")).thenReturn(List.of(medicoPadrao));
-        List<Medico> resultados = service.buscarPorNome("Teste");
-        assertFalse(resultados.isEmpty());
+        service.excluir(id);
+
+        assertFalse(m.getAtivo());
+        verify(repository).save(m);
     }
 }

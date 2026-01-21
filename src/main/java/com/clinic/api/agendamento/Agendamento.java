@@ -28,6 +28,7 @@ public class Agendamento {
     private LocalDateTime dataConsulta;
 
     // --- DADOS DO CONVÊNIO / PAGAMENTO ---
+    // Snapshot: Gravamos o nome do convênio aqui para histórico (caso o paciente troque depois)
     @Column(name = "nome_convenio")
     private String nomeConvenio;
 
@@ -35,7 +36,7 @@ public class Agendamento {
     private String numeroCarteirinha;
 
     @Column(name = "forma_pagamento")
-    private String formaPagamento; // PIX, CARTAO, BOLETO
+    private String formaPagamento; // PIX, CARTAO, BOLETO, CONVENIO
 
     // --- FINANCEIRO ---
     @Column(name = "valor_consulta")
@@ -47,7 +48,7 @@ public class Agendamento {
     @Column(name = "status_pagamento")
     private String statusPagamento; // PENDENTE, PAGO, CANCELADO, CONVENIO_APROVADO
 
-    // --- STATUS E AUDITORIA ---
+    // --- STATUS ---
     private String status; // EM_PROCESSAMENTO, AGENDADO, REALIZADO, CANCELADO
 
     @Column(name = "data_cadastro")
@@ -56,53 +57,34 @@ public class Agendamento {
     @PrePersist
     public void prePersist() {
         if(this.dataCadastro == null) this.dataCadastro = LocalDateTime.now();
+        if(this.status == null) this.status = "EM_PROCESSAMENTO";
     }
 
-    // --- Construtores ---
     public Agendamento() {}
-
-    public Agendamento(Medico medico, Paciente paciente, LocalDateTime dataConsulta) {
-        this.medico = medico;
-        this.paciente = paciente;
-        this.dataConsulta = dataConsulta;
-        this.status = "EM_PROCESSAMENTO";
-        this.statusPagamento = "PENDENTE";
-    }
 
     // --- Getters e Setters ---
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
-
     public Medico getMedico() { return medico; }
     public void setMedico(Medico medico) { this.medico = medico; }
-
     public Paciente getPaciente() { return paciente; }
     public void setPaciente(Paciente paciente) { this.paciente = paciente; }
-
     public LocalDateTime getDataConsulta() { return dataConsulta; }
     public void setDataConsulta(LocalDateTime dataConsulta) { this.dataConsulta = dataConsulta; }
-
     public String getNomeConvenio() { return nomeConvenio; }
     public void setNomeConvenio(String nomeConvenio) { this.nomeConvenio = nomeConvenio; }
-
     public String getNumeroCarteirinha() { return numeroCarteirinha; }
     public void setNumeroCarteirinha(String numeroCarteirinha) { this.numeroCarteirinha = numeroCarteirinha; }
-
     public String getFormaPagamento() { return formaPagamento; }
     public void setFormaPagamento(String formaPagamento) { this.formaPagamento = formaPagamento; }
-
     public BigDecimal getValorConsulta() { return valorConsulta; }
     public void setValorConsulta(BigDecimal valorConsulta) { this.valorConsulta = valorConsulta; }
-
     public String getLinkPagamento() { return linkPagamento; }
     public void setLinkPagamento(String linkPagamento) { this.linkPagamento = linkPagamento; }
-
     public String getStatusPagamento() { return statusPagamento; }
     public void setStatusPagamento(String statusPagamento) { this.statusPagamento = statusPagamento; }
-
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
-
     public LocalDateTime getDataCadastro() { return dataCadastro; }
     public void setDataCadastro(LocalDateTime dataCadastro) { this.dataCadastro = dataCadastro; }
 

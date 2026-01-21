@@ -14,24 +14,23 @@ public class Prontuario {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    // Um prontuário pertence a uma consulta específica
+    // Vínculo 1:1 com o Agendamento (Uma consulta = Um prontuário)
     @OneToOne
     @JoinColumn(name = "agendamento_id", nullable = false, unique = true)
     private Agendamento agendamento;
 
-    @Column(columnDefinition = "TEXT") // Permite textos longos
+    @Column(columnDefinition = "TEXT")
     private String queixaPrincipal;
 
     @Column(columnDefinition = "TEXT")
     private String diagnostico;
 
     @Column(columnDefinition = "TEXT")
-    private String prescricaoMedica; // Remédios
+    private String prescricaoMedica;
 
     @Column(name = "data_registro")
     private LocalDateTime dataRegistro;
 
-    // --- Construtores ---
     public Prontuario() {}
 
     public Prontuario(Agendamento agendamento) {
@@ -43,22 +42,17 @@ public class Prontuario {
         if (this.dataRegistro == null) this.dataRegistro = LocalDateTime.now();
     }
 
-    // --- Getters e Setters ---
+    // Getters e Setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
-
     public Agendamento getAgendamento() { return agendamento; }
     public void setAgendamento(Agendamento agendamento) { this.agendamento = agendamento; }
-
     public String getQueixaPrincipal() { return queixaPrincipal; }
     public void setQueixaPrincipal(String queixaPrincipal) { this.queixaPrincipal = queixaPrincipal; }
-
     public String getDiagnostico() { return diagnostico; }
     public void setDiagnostico(String diagnostico) { this.diagnostico = diagnostico; }
-
     public String getPrescricaoMedica() { return prescricaoMedica; }
     public void setPrescricaoMedica(String prescricaoMedica) { this.prescricaoMedica = prescricaoMedica; }
-
     public LocalDateTime getDataRegistro() { return dataRegistro; }
     public void setDataRegistro(LocalDateTime dataRegistro) { this.dataRegistro = dataRegistro; }
 

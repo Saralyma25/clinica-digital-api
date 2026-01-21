@@ -12,43 +12,37 @@ public class DadosClinicosFixos {
     @Id
     private UUID pacienteId;
 
+    // @MapsId usa o mesmo ID do Paciente (chave primária compartilhada)
     @OneToOne
     @MapsId
     @JoinColumn(name = "paciente_id")
     private Paciente paciente;
 
     @Column(columnDefinition = "TEXT")
-    private String comorbidades; // Ex: Diabetes, Hipertensão
+    private String comorbidades; // Ex: Diabetes
 
     @Column(columnDefinition = "TEXT")
-    private String alergias; // Ponto Crítico!
+    private String alergias; // Ex: Dipirona, Sulfa
 
     @Column(columnDefinition = "TEXT")
-    private String observacoesPermanentes;
+    private String observacoesPermanentes; // Ex: Paciente Jeová (não aceita sangue)
 
-    // --- Construtores ---
     public DadosClinicosFixos() {}
 
-    public DadosClinicosFixos(Paciente paciente, String comorbidades, String alergias) {
+    public DadosClinicosFixos(Paciente paciente) {
         this.paciente = paciente;
         this.pacienteId = paciente.getId();
-        this.comorbidades = comorbidades;
-        this.alergias = alergias;
     }
 
-    // --- Getters e Setters (Manuais - Regra Mateus) ---
+    // Getters e Setters
     public UUID getPacienteId() { return pacienteId; }
     public void setPacienteId(UUID pacienteId) { this.pacienteId = pacienteId; }
-
     public Paciente getPaciente() { return paciente; }
     public void setPaciente(Paciente paciente) { this.paciente = paciente; }
-
     public String getComorbidades() { return comorbidades; }
     public void setComorbidades(String comorbidades) { this.comorbidades = comorbidades; }
-
     public String getAlergias() { return alergias; }
     public void setAlergias(String alergias) { this.alergias = alergias; }
-
     public String getObservacoesPermanentes() { return observacoesPermanentes; }
     public void setObservacoesPermanentes(String observacoesPermanentes) { this.observacoesPermanentes = observacoesPermanentes; }
 

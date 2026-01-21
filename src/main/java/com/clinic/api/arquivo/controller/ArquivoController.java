@@ -22,30 +22,39 @@ public class ArquivoController {
         this.service = service;
     }
 
-    // --- UPLOAD (POST) ---
-    // Recebe um Form-Data com chave 'arquivo'
+    // --- UPLOAD GENÉRICO (Teste) ---
     @PostMapping("/upload")
     public ResponseEntity<Map<String, String>> uploadArquivo(@RequestParam("arquivo") MultipartFile arquivo) {
         String nomeSalvo = service.salvarArquivo(arquivo);
 
-        // Retorna um JSON simples: { "caminho": "uuid_nome.pdf" }
-        return ResponseEntity.ok(Map.of("caminho", nomeSalvo));
+        // Retorna JSON: { "mensagem": "Sucesso", "arquivo": "uuid_nome.pdf" }
+        return ResponseEntity.ok(Map.of(
+                "mensagem", "Arquivo salvo com sucesso",
+                "arquivo", nomeSalvo
+        ));
     }
 
-    // --- DOWNLOAD / VISUALIZAÇÃO (GET) ---
-    // Exemplo: GET /arquivos/a1b2c3d4_exame.pdf
+    // --- DOWNLOAD ---
     @GetMapping("/{nomeArquivo}")
     public ResponseEntity<Resource> lerArquivo(@PathVariable String nomeArquivo) throws IOException {
         Resource arquivo = service.carregarArquivo(nomeArquivo);
 
-        // Tenta descobrir o tipo do arquivo (PDF, PNG, JPG) para o navegador abrir certo
-        String contentType = Files.probeContentType(arquivo.getFile().toPath());
+        // Tenta descobrir o tipo do arquivo (PDF, PNG, etc.) automaticamente
+        String contentType = null;
+        try {
+            contentType = Files.probeContentType(arquivo.getFile().toPath());
+        } catch (IOException ex) {
+            // Ignora erro e usa padrão
+        }
+
+        // Se não descobrir, assume binário genérico
         if(contentType == null) {
             contentType = "application/octet-stream";
         }
 
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(contentType))
+                // "inline" abre no navegador, "attachment" forçaria o download
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + arquivo.getFilename() + "\"")
                 .body(arquivo);
     }

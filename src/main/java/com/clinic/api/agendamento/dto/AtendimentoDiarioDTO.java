@@ -8,9 +8,9 @@ public class AtendimentoDiarioDTO {
     private LocalDateTime horario;
     private String pacienteNome;
     private String especialidade;
-    private String statusAtendimento; // AGENDADO, CONFIRMADO, CANCELADO
-    private String statusPagamento;   // PAGO, PENDENTE, CONVENIO
-    private String modalidade;        // PRESENCIAL, ONLINE
+    private String statusAtendimento;
+    private String statusPagamento;
+    private String modalidade;
 
     public AtendimentoDiarioDTO(UUID agendamentoId, LocalDateTime horario, String pacienteNome,
                                 String especialidade, String statusAtendimento,
@@ -24,7 +24,7 @@ public class AtendimentoDiarioDTO {
         this.modalidade = modalidade;
     }
 
-    // Getters Manuais
+    // Getters
     public UUID getAgendamentoId() { return agendamentoId; }
     public LocalDateTime getHorario() { return horario; }
     public String getPacienteNome() { return pacienteNome; }
