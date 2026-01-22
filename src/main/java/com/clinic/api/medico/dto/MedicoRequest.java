@@ -3,7 +3,9 @@ package com.clinic.api.medico.dto;
 import com.clinic.api.medico.enun.Especialidade;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull; // Importante
 import java.math.BigDecimal;
+import java.util.UUID;
 
 public class MedicoRequest {
 
@@ -14,7 +16,9 @@ public class MedicoRequest {
     @Email(message = "Email inválido")
     private String email;
 
-    // Removido @NotBlank e @NotNull para permitir o primeiro acesso rápido
+    @NotNull(message = "O ID da clínica é obrigatório") // <--- CAMPO NOVO
+    private UUID clinicaId;
+
     private String crm;
     private Especialidade especialidade;
     private BigDecimal valorConsulta;
@@ -25,6 +29,9 @@ public class MedicoRequest {
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+
+    public UUID getClinicaId() { return clinicaId; } // <--- Getter
+    public void setClinicaId(UUID clinicaId) { this.clinicaId = clinicaId; } // <--- Setter
 
     public String getCrm() { return crm; }
     public void setCrm(String crm) { this.crm = crm; }
