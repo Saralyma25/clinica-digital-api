@@ -7,6 +7,7 @@ import com.clinic.api.paciente.dto.PacienteRequest;
 import com.clinic.api.paciente.dto.PacienteResponse;
 import com.clinic.api.paciente.service.PacienteService;
 import com.clinic.api.prontuario.domain.ProntuarioRepository;
+import com.clinic.api.usuario.Usuario;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,10 +54,34 @@ class PacienteServiceTest {
     }
 
     @Test
-    @DisplayName("5. Listar Todos: Retorna lista")
+    @DisplayName("Deve listar todos os pacientes ativos")
     void listarTodos() {
-        when(repository.findAll()).thenReturn(List.of(new Paciente()));
-        assertFalse(service.listarTodos().isEmpty());
+        // Cenário
+        Paciente p1 = new Paciente();
+        p1.setId(UUID.randomUUID());
+        p1.setNome("Ana");
+
+        // CORREÇÃO: Adicionar Usuário Ativo
+        Usuario u1 = new Usuario();
+        u1.setAtivo(true);
+        p1.setUsuario(u1);
+
+        Paciente p2 = new Paciente();
+        p2.setId(UUID.randomUUID());
+        p2.setNome("Bob");
+
+        // CORREÇÃO: Adicionar Usuário Ativo
+        Usuario u2 = new Usuario();
+        u2.setAtivo(true);
+        p2.setUsuario(u2);
+
+        when(repository.findAll()).thenReturn(List.of(p1, p2));
+
+        // Ação
+        List<PacienteResponse> resultado = service.listarTodos();
+
+        // Verificação
+        assertEquals(2, resultado.size());
     }
 
     @Test
