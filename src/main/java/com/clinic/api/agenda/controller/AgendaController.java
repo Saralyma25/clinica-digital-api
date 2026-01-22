@@ -16,27 +16,30 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/agenda")
-public class ConfiguracaoAgendaController {
+public class AgendaController {
 
     private final AgendaService service;
 
-    public ConfiguracaoAgendaController(AgendaService service) {
+    public AgendaController(AgendaService service) {
         this.service = service;
     }
 
-    // 1. Configurar horário de trabalho (Ex: Segundas das 08h às 18h)
-    @PostMapping("/configurar")
+    // 1. Configurar Horário (Recurso: Configuração)
+    // URL: POST /agenda/configuracao
+    @PostMapping("/configuracao")
     public ResponseEntity<ConfiguracaoAgenda> salvarConfiguracao(@RequestBody @Valid AgendaConfigRequest request) {
         return ResponseEntity.ok(service.salvarConfiguracao(request));
     }
 
-    // 2. Criar Bloqueio (Ex: Almoço hoje das 12h às 13h)
-    @PostMapping("/bloquear")
+    // 2. Criar Bloqueio (Recurso: Bloqueios)
+    // URL: POST /agenda/bloqueios
+    @PostMapping("/bloqueios")
     public ResponseEntity<BloqueioAgenda> criarBloqueio(@RequestBody @Valid BloqueioRequest request) {
         return ResponseEntity.ok(service.criarBloqueio(request));
     }
 
-    // 3. Buscar Disponibilidade (Para o Paciente ver as "bolinhas verdes")
+    // 3. Buscar Disponibilidade
+    // URL: GET /agenda/disponibilidade?medicoId=...&data=...
     @GetMapping("/disponibilidade")
     public ResponseEntity<List<LocalDateTime>> buscarDisponibilidade(
             @RequestParam UUID medicoId,

@@ -22,7 +22,6 @@ public class ConvenioService {
 
     @Transactional
     public ConvenioResponse cadastrar(ConvenioRequest request) {
-        // Validação de Duplicidade
         if (repository.existsByNomeIgnoreCase(request.getNome())) {
             throw new RuntimeException("Já existe um convênio com o nome: " + request.getNome());
         }
@@ -41,7 +40,7 @@ public class ConvenioService {
 
     public List<ConvenioResponse> listarTodos() {
         return repository.findAll().stream()
-                .filter(Convenio::getAtivo) // Só traz os ativos
+                .filter(Convenio::getAtivo)
                 .map(ConvenioResponse::new)
                 .collect(Collectors.toList());
     }
@@ -60,11 +59,25 @@ public class ConvenioService {
     }
 
     @Transactional
+    public ConvenioResponse atualizar(UUID id, ConvenioRequest request) {
+        Convenio convenio = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Convênio não encontrado para atualização"));
+
+        convenio.setNome(request.getNome());
+        convenio.setRegistroAns(request.getRegistroAns());
+
+        // AGORA VAI FUNCIONAR (pois adicionamos o Setter na Entidade)
+        convenio.setDiasPagamento(request.getDiasParaPagamento());
+
+        return new ConvenioResponse(repository.save(convenio));
+    }
+
+    @Transactional
     public void excluir(UUID id) {
         Convenio convenio = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Convênio não encontrado"));
 
-        convenio.setAtivo(false); // Soft Delete
+        convenio.setAtivo(false);
         repository.save(convenio);
     }
 }

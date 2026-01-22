@@ -13,7 +13,7 @@ public class AgendamentoResponse {
     private Especialidade especialidade;
     private String nomePaciente;
     private LocalDateTime dataConsulta;
-    private String status;
+    private String status; // Retorna o Enum.name()
     private String statusPagamento;
     private BigDecimal valor;
 
@@ -30,7 +30,7 @@ public class AgendamentoResponse {
         }
 
         this.dataConsulta = agendamento.getDataConsulta();
-        this.status = agendamento.getStatus();
+        this.status = agendamento.getStatus().name(); // Enum -> String
         this.statusPagamento = agendamento.getStatusPagamento();
         this.valor = agendamento.getValorConsulta();
     }

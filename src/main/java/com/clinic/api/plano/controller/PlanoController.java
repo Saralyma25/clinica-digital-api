@@ -23,8 +23,7 @@ public class PlanoController {
 
     @PostMapping
     public ResponseEntity<PlanoResponse> cadastrar(@RequestBody @Valid PlanoRequest request) {
-        var response = service.cadastrar(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.cadastrar(request));
     }
 
     @GetMapping
@@ -32,11 +31,22 @@ public class PlanoController {
         return ResponseEntity.ok(service.listarTodos());
     }
 
-    // Endpoint Específico: Traz os planos de UM convênio
-    // Ex: GET /planos/convenio/UUID-DA-UNIMED -> Retorna [Flex, Top, Basico]
+    // Traz os planos de UM convênio (Fundamental para o Front-end)
     @GetMapping("/convenio/{convenioId}")
     public ResponseEntity<List<PlanoResponse>> listarPorConvenio(@PathVariable UUID convenioId) {
         return ResponseEntity.ok(service.listarPorConvenio(convenioId));
+    }
+
+    // --- ADICIONADO: BUSCAR POR ID (Útil para edição) ---
+    @GetMapping("/{id}")
+    public ResponseEntity<PlanoResponse> buscarPorId(@PathVariable UUID id) {
+        return ResponseEntity.ok(service.buscarPorId(id));
+    }
+
+    // --- ADICIONADO: ATUALIZAR ---
+    @PutMapping("/{id}")
+    public ResponseEntity<PlanoResponse> atualizar(@PathVariable UUID id, @RequestBody @Valid PlanoRequest request) {
+        return ResponseEntity.ok(service.atualizar(id, request));
     }
 
     @DeleteMapping("/{id}")

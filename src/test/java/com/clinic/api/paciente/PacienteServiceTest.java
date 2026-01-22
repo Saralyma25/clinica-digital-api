@@ -1,17 +1,12 @@
 package com.clinic.api.paciente;
 
 import com.clinic.api.documento.domain.DocumentoRepository;
-import com.clinic.api.paciente.Paciente;
 import com.clinic.api.paciente.domain.PacienteRepository;
 import com.clinic.api.paciente.dto.PacienteBasicoRequest;
 import com.clinic.api.paciente.dto.PacienteRequest;
 import com.clinic.api.paciente.dto.PacienteResponse;
-import com.clinic.api.paciente.dto.TimelineDTO;
 import com.clinic.api.paciente.service.PacienteService;
-import com.clinic.api.prontuario.Prontuario;
 import com.clinic.api.prontuario.domain.ProntuarioRepository;
-import com.clinic.api.agendamento.Agendamento;
-import com.clinic.api.medico.Medico;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,8 +14,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

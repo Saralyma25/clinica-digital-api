@@ -1,5 +1,6 @@
 package com.clinic.api.agendamento;
 
+import com.clinic.api.agendamento.domain.StatusAgendamento;
 import com.clinic.api.medico.Medico;
 import com.clinic.api.paciente.Paciente;
 import jakarta.persistence.*;
@@ -8,8 +9,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.Objects;
 
+@Entity
 @Table(name = "tb_agendamento")
-@Entity(name = "Agendamento")
 public class Agendamento {
 
     @Id
@@ -28,7 +29,6 @@ public class Agendamento {
     private LocalDateTime dataConsulta;
 
     // --- DADOS DO CONVÊNIO / PAGAMENTO ---
-    // Snapshot: Gravamos o nome do convênio aqui para histórico (caso o paciente troque depois)
     @Column(name = "nome_convenio")
     private String nomeConvenio;
 
@@ -36,7 +36,7 @@ public class Agendamento {
     private String numeroCarteirinha;
 
     @Column(name = "forma_pagamento")
-    private String formaPagamento; // PIX, CARTAO, BOLETO, CONVENIO
+    private String formaPagamento; // PIX, CARTAO, CONVENIO
 
     // --- FINANCEIRO ---
     @Column(name = "valor_consulta")
@@ -46,10 +46,12 @@ public class Agendamento {
     private String linkPagamento;
 
     @Column(name = "status_pagamento")
-    private String statusPagamento; // PENDENTE, PAGO, CANCELADO, CONVENIO_APROVADO
+    private String statusPagamento; // PENDENTE, PAGO
 
-    // --- STATUS ---
-    private String status; // EM_PROCESSAMENTO, AGENDADO, REALIZADO, CANCELADO
+    // --- STATUS (Corrigido para usar Enum) ---
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private StatusAgendamento status;
 
     @Column(name = "data_cadastro")
     private LocalDateTime dataCadastro;
@@ -57,10 +59,18 @@ public class Agendamento {
     @PrePersist
     public void prePersist() {
         if(this.dataCadastro == null) this.dataCadastro = LocalDateTime.now();
-        if(this.status == null) this.status = "EM_PROCESSAMENTO";
+        if(this.status == null) this.status = StatusAgendamento.AGENDADO;
     }
 
     public Agendamento() {}
+
+    // Construtor auxiliar
+    public Agendamento(Medico medico, Paciente paciente, LocalDateTime dataConsulta) {
+        this.medico = medico;
+        this.paciente = paciente;
+        this.dataConsulta = dataConsulta;
+        this.status = StatusAgendamento.AGENDADO;
+    }
 
     // --- Getters e Setters ---
     public UUID getId() { return id; }
@@ -83,8 +93,8 @@ public class Agendamento {
     public void setLinkPagamento(String linkPagamento) { this.linkPagamento = linkPagamento; }
     public String getStatusPagamento() { return statusPagamento; }
     public void setStatusPagamento(String statusPagamento) { this.statusPagamento = statusPagamento; }
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public StatusAgendamento getStatus() { return status; }
+    public void setStatus(StatusAgendamento status) { this.status = status; }
     public LocalDateTime getDataCadastro() { return dataCadastro; }
     public void setDataCadastro(LocalDateTime dataCadastro) { this.dataCadastro = dataCadastro; }
 

@@ -23,18 +23,14 @@ public class PacienteController {
         this.service = service;
     }
 
-    // Endpoint para Login Social / Cadastro Rápido
     @PostMapping("/rapido")
     public ResponseEntity<PacienteResponse> cadastrarRapido(@RequestBody @Valid PacienteBasicoRequest request) {
-        var response = service.cadastrarRapido(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.cadastrarRapido(request));
     }
 
-    // Endpoint para Cadastro Tradicional Completo
     @PostMapping
     public ResponseEntity<PacienteResponse> cadastrarCompleto(@RequestBody @Valid PacienteRequest request) {
-        var response = service.cadastrarCompleto(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.cadastrarCompleto(request));
     }
 
     @GetMapping
@@ -47,9 +43,21 @@ public class PacienteController {
         return ResponseEntity.ok(service.buscarPorId(id));
     }
 
-    // Endpoint da Timeline (Histórico Médico)
     @GetMapping("/{id}/timeline")
     public ResponseEntity<List<TimelineDTO>> buscarTimeline(@PathVariable UUID id) {
         return ResponseEntity.ok(service.buscarTimelineCompleta(id));
+    }
+
+    // --- ADICIONADO: ATUALIZAR ---
+    @PutMapping("/{id}")
+    public ResponseEntity<PacienteResponse> atualizar(@PathVariable UUID id, @RequestBody @Valid PacienteRequest request) {
+        return ResponseEntity.ok(service.atualizar(id, request));
+    }
+
+    // --- ADICIONADO: EXCLUIR ---
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> excluir(@PathVariable UUID id) {
+        service.excluir(id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -18,7 +18,6 @@ public class AgendamentoRequest {
     private LocalDateTime dataConsulta;
 
     private String formaPagamento;
-    // Opcionais (apenas se for convênio)
     private String nomeConvenio;
     private String numeroCarteirinha;
 

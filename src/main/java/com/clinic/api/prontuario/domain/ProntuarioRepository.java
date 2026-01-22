@@ -15,7 +15,6 @@ public interface ProntuarioRepository extends JpaRepository<Prontuario, UUID> {
 
     Optional<Prontuario> findByAgendamentoId(UUID agendamentoId);
 
-    // Busca o histórico completo, do mais recente para o mais antigo
     @Query("SELECT p FROM Prontuario p WHERE p.agendamento.paciente.id = :pacienteId ORDER BY p.agendamento.dataConsulta DESC")
     List<Prontuario> buscarHistoricoCompletoDoPaciente(@Param("pacienteId") UUID pacienteId);
 }

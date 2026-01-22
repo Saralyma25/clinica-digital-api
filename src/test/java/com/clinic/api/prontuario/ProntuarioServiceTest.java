@@ -6,7 +6,6 @@ import com.clinic.api.medico.Medico;
 import com.clinic.api.medico.enun.Especialidade;
 import com.clinic.api.paciente.Paciente;
 import com.clinic.api.paciente.domain.PacienteRepository;
-import com.clinic.api.prontuario.*;
 import com.clinic.api.prontuario.domain.DadosClinicosFixosRepository;
 import com.clinic.api.prontuario.domain.ProntuarioRepository;
 import com.clinic.api.prontuario.dto.*;
@@ -21,7 +20,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

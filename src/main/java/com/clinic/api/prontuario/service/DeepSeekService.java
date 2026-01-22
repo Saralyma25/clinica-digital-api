@@ -16,13 +16,12 @@ public class DeepSeekService {
     private final RestTemplate restTemplate = new RestTemplate();
 
     public String gerarResumoClinico(String historicoTexto) {
-        // Bypass se não tiver chave configurada (para não quebrar em dev)
         if (apiKey == null || apiKey.isEmpty()) {
-            return "Resumo indisponível: Chave de API não configurada.";
+            return "Resumo IA indisponível: Chave de API não configurada.";
         }
 
         if (historicoTexto == null || historicoTexto.length() < 20) {
-            return "Histórico insuficiente para geração de resumo via IA.";
+            return "Histórico insuficiente para análise inteligente.";
         }
 
         try {
@@ -32,10 +31,11 @@ public class DeepSeekService {
 
             Map<String, Object> body = new HashMap<>();
             body.put("model", "deepseek-chat");
+            body.put("temperature", 0.5); // Mais conservador e técnico
 
             List<Map<String, String>> messages = new ArrayList<>();
             messages.add(Map.of("role", "system", "content",
-                    "Você é um assistente médico sênior. Resuma o histórico do paciente em no máximo 5 linhas, destacando: doenças crônicas, evolução dos sintomas e medicamentos citados. Seja técnico e direto."));
+                    "Você é um médico assistente sênior. Analise o histórico e resuma em PT-BR: doenças crônicas ativas, evolução do quadro e medicamentos em uso. Máximo 400 caracteres."));
             messages.add(Map.of("role", "user", "content", historicoTexto));
 
             body.put("messages", messages);
@@ -53,8 +53,8 @@ public class DeepSeekService {
             return "Não foi possível interpretar a resposta da IA.";
 
         } catch (Exception e) {
-            // Em produção, logaríamos o erro, mas não travamos o usuário
-            return "IA indisponível no momento. (Erro de conexão)";
+            System.err.println("Erro ao chamar DeepSeek: " + e.getMessage());
+            return "IA indisponível no momento.";
         }
     }
 }

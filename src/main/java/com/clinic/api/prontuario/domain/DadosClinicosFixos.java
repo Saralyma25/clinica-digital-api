@@ -1,4 +1,4 @@
-package com.clinic.api.prontuario;
+package com.clinic.api.prontuario.domain;
 
 import com.clinic.api.paciente.Paciente;
 import jakarta.persistence.*;
@@ -12,20 +12,19 @@ public class DadosClinicosFixos {
     @Id
     private UUID pacienteId;
 
-    // @MapsId usa o mesmo ID do Paciente (chave primária compartilhada)
     @OneToOne
     @MapsId
     @JoinColumn(name = "paciente_id")
     private Paciente paciente;
 
     @Column(columnDefinition = "TEXT")
-    private String comorbidades; // Ex: Diabetes
+    private String comorbidades;
 
     @Column(columnDefinition = "TEXT")
-    private String alergias; // Ex: Dipirona, Sulfa
+    private String alergias;
 
     @Column(columnDefinition = "TEXT")
-    private String observacoesPermanentes; // Ex: Paciente Jeová (não aceita sangue)
+    private String observacoesPermanentes;
 
     public DadosClinicosFixos() {}
 

@@ -4,9 +4,8 @@ import com.clinic.api.agenda.service.AgendaService;
 import com.clinic.api.agendamento.Agendamento;
 import com.clinic.api.agendamento.dto.AgendamentoRequest;
 import com.clinic.api.agendamento.dto.AgendamentoResponse;
+import com.clinic.api.agendamento.dto.AtendimentoDiarioDTO;
 import com.clinic.api.agendamento.service.AgendamentoService;
-import com.clinic.api.medico.Medico;
-import com.clinic.api.paciente.Paciente;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,46 +29,22 @@ public class AgendamentoController {
         this.agendaService = agendaService;
     }
 
-    // --- NOVO ENDPOINT: Buscar horários disponíveis (Motor de busca do Dia 06) ---
+    // --- Motor de Disponibilidade ---
     @GetMapping("/disponibilidade")
     public ResponseEntity<List<LocalDateTime>> buscarDisponibilidade(
             @RequestParam UUID medicoId,
             @RequestParam LocalDate data) {
-
-        List<LocalDateTime> disponiveis = agendaService.listarHorariosDisponiveis(medicoId, data);
-        return ResponseEntity.ok(disponiveis);
+        return ResponseEntity.ok(agendaService.listarHorariosDisponiveis(medicoId, data));
     }
 
-    // --- 1. AGENDAR (POST) ---
+    // --- AGENDAR (Refatorado: Passa o DTO para o Service) ---
     @PostMapping
     public ResponseEntity<AgendamentoResponse> agendar(@RequestBody @Valid AgendamentoRequest request) {
-        Agendamento agendamentoParaSalvar = new Agendamento();
-
-        // Dados básicos da consulta
-        agendamentoParaSalvar.setDataConsulta(request.getDataConsulta());
-
-        // NOVOS CAMPOS: Capturando dados financeiros e de convênio do DTO
-        agendamentoParaSalvar.setFormaPagamento(request.getFormaPagamento());
-        agendamentoParaSalvar.setNomeConvenio(request.getNomeConvenio());
-        agendamentoParaSalvar.setNumeroCarteirinha(request.getNumeroCarteirinha());
-
-        // Associação com Médico (Shell Object)
-        Medico medico = new Medico();
-        medico.setId(request.getMedicoId());
-        agendamentoParaSalvar.setMedico(medico);
-
-        // Associação com Paciente (Shell Object)
-        Paciente paciente = new Paciente();
-        paciente.setId(request.getPacienteId());
-        agendamentoParaSalvar.setPaciente(paciente);
-
-        // O Service aplicará as regras de bifurcação (Convênio vs Particular)
-        Agendamento agendamentoSalvo = service.agendar(agendamentoParaSalvar);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(new AgendamentoResponse(agendamentoSalvo));
+        var response = service.agendar(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    // --- 2. LISTAR TODOS (GET) ---
+    // --- LISTAR TODOS ---
     @GetMapping
     public ResponseEntity<List<AgendamentoResponse>> listarTodos() {
         List<AgendamentoResponse> lista = service.listarTodos().stream()
@@ -78,34 +53,31 @@ public class AgendamentoController {
         return ResponseEntity.ok(lista);
     }
 
-    // --- 3. BUSCAR POR ID (GET) ---
+    // --- BUSCAR POR ID ---
     @GetMapping("/{id}")
     public ResponseEntity<AgendamentoResponse> buscarPorId(@PathVariable UUID id) {
         Agendamento agendamento = service.buscarPorId(id);
         return ResponseEntity.ok(new AgendamentoResponse(agendamento));
     }
 
-    // --- 4. CONFIRMAR AGENDAMENTO (PATCH) ---
+    // --- AÇÕES DO FLUXO ---
     @PatchMapping("/{id}/confirmar")
     public ResponseEntity<Void> confirmar(@PathVariable UUID id) {
         service.confirmarAgendamento(id);
         return ResponseEntity.noContent().build();
     }
 
-    // --- 5. CANCELAR AGENDAMENTO (DELETE) ---
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> cancelar(@PathVariable UUID id) {
         service.cancelar(id);
         return ResponseEntity.noContent().build();
     }
-    // --- NOVO ENDPOINT (Dia 06): Lista de Atendimentos do Dia (Visão da Secretária) ---
-    // Exemplo de chamada: GET /agendamentos/diario?medicoId=...&data=2023-10-25
+
+    // --- DASHBOARD DIÁRIO ---
     @GetMapping("/diario")
-    public ResponseEntity<List<com.clinic.api.agendamento.dto.AtendimentoDiarioDTO>> listarDiario(
+    public ResponseEntity<List<AtendimentoDiarioDTO>> listarDiario(
             @RequestParam UUID medicoId,
             @RequestParam LocalDate data) {
-
-        var lista = service.listarAtendimentosDoDia(medicoId, data);
-        return ResponseEntity.ok(lista);
+        return ResponseEntity.ok(service.listarAtendimentosDoDia(medicoId, data));
     }
 }

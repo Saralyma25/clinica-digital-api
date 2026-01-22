@@ -1,7 +1,7 @@
 package com.clinic.api.dashboard.service;
 
 import com.clinic.api.agendamento.Agendamento;
-import com.clinic.api.agendamento.AgendamentoRepository;
+import com.clinic.api.agendamento.domain.AgendamentoRepository;
 import com.clinic.api.dashboard.dto.DashboardResumoDTO;
 import com.clinic.api.dashboard.dto.GraficoFaturamentoDTO;
 import com.clinic.api.documento.domain.DocumentoRepository;

@@ -13,7 +13,7 @@ public class ConvenioResponse {
         this.id = convenio.getId();
         this.nome = convenio.getNome();
         this.registroAns = convenio.getRegistroAns();
-        this.diasParaPagamento = convenio.getDiasParaPagamento();
+        this.diasParaPagamento = convenio.getDiasPagamento();
     }
 
     public UUID getId() { return id; }

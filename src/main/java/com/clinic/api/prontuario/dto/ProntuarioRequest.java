@@ -9,6 +9,8 @@ public class ProntuarioRequest {
     private UUID agendamentoId;
 
     private String queixaPrincipal;
+
+
     private String diagnostico;
     private String prescricaoMedica;
 

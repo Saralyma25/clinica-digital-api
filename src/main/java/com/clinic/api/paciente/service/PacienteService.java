@@ -34,7 +34,7 @@ public class PacienteService {
         this.documentoRepository = documentoRepository;
     }
 
-    // --- CENÁRIO 1: Cadastro Rápido (Google) ---
+    // --- CADASTRO RÁPIDO ---
     @Transactional
     public PacienteResponse cadastrarRapido(PacienteBasicoRequest request) {
         if (repository.existsByUsuarioEmail(request.email())) {
@@ -56,7 +56,7 @@ public class PacienteService {
         return new PacienteResponse(salvo);
     }
 
-    // --- CENÁRIO 2: Cadastro Completo (Formulário) ---
+    // --- CADASTRO COMPLETO ---
     @Transactional
     public PacienteResponse cadastrarCompleto(PacienteRequest request) {
         if (repository.existsByUsuarioEmail(request.getEmail())) {
@@ -86,6 +86,7 @@ public class PacienteService {
     // --- LEITURAS ---
     public List<PacienteResponse> listarTodos() {
         return repository.findAll().stream()
+                .filter(p -> p.getUsuario().getAtivo()) // Filtra apenas ativos
                 .map(PacienteResponse::new)
                 .collect(Collectors.toList());
     }
@@ -96,11 +97,40 @@ public class PacienteService {
         return new PacienteResponse(paciente);
     }
 
-    // --- TIMELINE DO PACIENTE ---
+    // --- ATUALIZAÇÃO (NOVO) ---
+    @Transactional
+    public PacienteResponse atualizar(UUID id, PacienteRequest request) {
+        Paciente paciente = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Paciente não encontrado."));
+
+        // Atualiza campos permitidos
+        if (request.getNome() != null) paciente.setNome(request.getNome());
+        if (request.getCpf() != null) paciente.setCpf(request.getCpf());
+        if (request.getTelefone() != null) paciente.setTelefone(request.getTelefone());
+
+        // Se atualizou dados cadastrais, marca como completo
+        if (paciente.getCpf() != null && paciente.getTelefone() != null) {
+            paciente.setCadastroCompleto(true);
+        }
+
+        return new PacienteResponse(repository.save(paciente));
+    }
+
+    // --- EXCLUSÃO (NOVO) ---
+    @Transactional
+    public void excluir(UUID id) {
+        Paciente paciente = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Paciente não encontrado."));
+
+        // Desativa o paciente e o usuário de acesso
+        paciente.getUsuario().setAtivo(false);
+        repository.save(paciente);
+    }
+
+    // --- TIMELINE ---
     public List<TimelineDTO> buscarTimelineCompleta(UUID pacienteId) {
         List<TimelineDTO> timeline = new ArrayList<>();
 
-        // Adiciona Consultas (Prontuários)
         var prontuarios = prontuarioRepository.buscarHistoricoCompletoDoPaciente(pacienteId);
         if (prontuarios != null) {
             prontuarios.forEach(p -> timeline.add(new TimelineDTO(
@@ -113,15 +143,14 @@ public class PacienteService {
             )));
         }
 
-        // Adiciona Documentos (Exames)
         var documentos = documentoRepository.findByPacienteIdOrderByDataUploadDesc(pacienteId);
         if (documentos != null) {
             documentos.forEach(d -> timeline.add(new TimelineDTO(
                     d.getId(),
                     d.getDataUpload(),
-                    "EXAME", // Categoria
+                    "EXAME",
                     d.getNomeOriginal(),
-                    d.getTipoContentType(), // <--- CORRIGIDO AQUI (era d.getTipo())
+                    d.getTipoContentType(),
                     d.getCaminhoArquivo()
             )));
         }

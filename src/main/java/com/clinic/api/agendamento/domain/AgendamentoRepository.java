@@ -1,5 +1,7 @@
-package com.clinic.api.agendamento;
+package com.clinic.api.agendamento.domain;
 
+import com.clinic.api.agendamento.Agendamento;
+import com.clinic.api.agendamento.domain.StatusAgendamento;
 import com.clinic.api.medico.enun.Especialidade;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -18,20 +20,27 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, UUID> 
     List<Agendamento> findByMedicoId(UUID medicoId);
     List<Agendamento> findByPacienteId(UUID pacienteId);
 
-    // Busca para o Dashboard Diário (Ordenado por horário)
+    // Busca para o Dashboard Diário
     List<Agendamento> findByMedicoIdAndDataConsultaBetweenOrderByDataConsultaAsc(UUID medicoId, LocalDateTime start, LocalDateTime end);
 
-    // Validações de Choque de Horário
+    // Validações de Choque de Horário (Simples)
     boolean existsByMedicoIdAndDataConsulta(UUID medicoId, LocalDateTime dataConsulta);
 
-    // Trava para Paciente: não pode ter 2 consultas no mesmo horário (exceto se cancelado)
-    boolean existsByPacienteIdAndDataConsultaAndStatusNot(UUID pacienteId, LocalDateTime data, String status);
+    // Validação Complexa 1: Paciente não pode estar em dois lugares ao mesmo tempo
+    // Verifica se existe agendamento ativo (Status diferente de Cancelado)
+    boolean existsByPacienteIdAndDataConsultaAndStatusNot(UUID pacienteId, LocalDateTime data, StatusAgendamento statusExcluido);
 
-    // Trava de Duplicidade Ativa: Paciente não pode ter 2 consultas 'ABERTAS' da mesma especialidade
-    boolean existsByPacienteIdAndMedico_EspecialidadeAndStatusIn(UUID pacienteId, Especialidade especialidade, List<String> status);
+    // Validação Complexa 2: Regra de Negócio (Duplicidade de especialidade ativa)
+    @Query("SELECT COUNT(a) > 0 FROM Agendamento a WHERE a.paciente.id = :pacienteId " +
+            "AND a.medico.especialidade = :especialidade " +
+            "AND a.status IN :listaStatus")
+    boolean existsByPacienteIdAndEspecialidadeAndStatus(
+            @Param("pacienteId") UUID pacienteId,
+            @Param("especialidade") Especialidade especialidade,
+            @Param("listaStatus") List<StatusAgendamento> listaStatus);
 
-    // Limpeza automática
+    // Limpeza automática (Garbage Collector de agendamentos abandonados)
     @Modifying
     @Query("DELETE FROM Agendamento a WHERE a.status = :status AND a.dataCadastro < :limite")
-    void deleteByStatusAndDataCadastroBefore(@Param("status") String status, @Param("limite") LocalDateTime limite);
+    void deleteByStatusAndDataCadastroBefore(@Param("status") StatusAgendamento status, @Param("limite") LocalDateTime limite);
 }

@@ -32,7 +32,7 @@ public class ConvenioController {
         return ResponseEntity.ok(service.listarTodos());
     }
 
-    @GetMapping("/buscar") // Ex: /convenios/buscar?nome=Uni
+    @GetMapping("/buscar")
     public ResponseEntity<List<ConvenioResponse>> buscarPorNome(@RequestParam String nome) {
         return ResponseEntity.ok(service.buscarPorNome(nome));
     }
@@ -41,6 +41,14 @@ public class ConvenioController {
     public ResponseEntity<ConvenioResponse> buscarPorId(@PathVariable UUID id) {
         return ResponseEntity.ok(service.buscarPorId(id));
     }
+
+    // --- NOVO MÉTODO ADICIONADO ---
+    @PutMapping("/{id}")
+    public ResponseEntity<ConvenioResponse> atualizar(@PathVariable UUID id, @RequestBody @Valid ConvenioRequest request) {
+        var response = service.atualizar(id, request);
+        return ResponseEntity.ok(response);
+    }
+    // -----------------------------
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> excluir(@PathVariable UUID id) {

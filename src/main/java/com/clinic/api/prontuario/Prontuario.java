@@ -14,7 +14,6 @@ public class Prontuario {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    // Vínculo 1:1 com o Agendamento (Uma consulta = Um prontuário)
     @OneToOne
     @JoinColumn(name = "agendamento_id", nullable = false, unique = true)
     private Agendamento agendamento;

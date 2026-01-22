@@ -26,14 +26,11 @@ public class PlanoService {
 
     @Transactional
     public PlanoResponse cadastrar(PlanoRequest request) {
-        // 1. Busca o Pai (Convenio)
         Convenio convenio = convenioRepository.findById(request.getConvenioId())
                 .orElseThrow(() -> new RuntimeException("Convênio não encontrado com o ID informado."));
 
-        // 2. Cria o Filho (Plano)
         Plano plano = new Plano(request.getNome(), request.getValorRepasse(), convenio);
 
-        // 3. Salva
         return new PlanoResponse(repository.save(plano));
     }
 
@@ -44,11 +41,29 @@ public class PlanoService {
                 .collect(Collectors.toList());
     }
 
-    // Método crucial para o Front-end: "Carregar planos deste convênio"
     public List<PlanoResponse> listarPorConvenio(UUID convenioId) {
         return repository.findByConvenioIdAndAtivoTrue(convenioId).stream()
                 .map(PlanoResponse::new)
                 .collect(Collectors.toList());
+    }
+
+    // --- MÉTODO NOVO: BUSCAR POR ID ---
+    public PlanoResponse buscarPorId(UUID id) {
+        Plano plano = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Plano não encontrado"));
+        return new PlanoResponse(plano);
+    }
+
+    // --- MÉTODO NOVO: ATUALIZAR ---
+    @Transactional
+    public PlanoResponse atualizar(UUID id, PlanoRequest request) {
+        Plano plano = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Plano não encontrado"));
+
+        plano.setNome(request.getNome());
+        plano.setValorRepasse(request.getValorRepasse());
+
+        return new PlanoResponse(repository.save(plano));
     }
 
     @Transactional

@@ -1,6 +1,5 @@
 package com.clinic.api.prontuario.controller;
 
-import com.clinic.api.prontuario.Prontuario; // Apenas se necessário para algum método específico
 import com.clinic.api.prontuario.dto.*;
 import com.clinic.api.prontuario.service.ProntuarioService;
 import jakarta.validation.Valid;
@@ -21,38 +20,41 @@ public class ProntuarioController {
         this.service = service;
     }
 
-    // --- 1. A CAPA DA PASTA (Folha de Rosto) ---
+    // --- 1. A CAPA DA PASTA (Folha de Rosto + IA Resumo) ---
+    // Ex: GET /prontuarios/paciente/{id}/folha-rosto
     @GetMapping("/paciente/{pacienteId}/folha-rosto")
     public ResponseEntity<FolhaDeRostoDTO> obterFolhaDeRosto(@PathVariable UUID pacienteId) {
         return ResponseEntity.ok(service.obterFolhaDeRosto(pacienteId));
     }
 
     // --- 2. HISTÓRICO COMPLETO (Timeline) ---
-    // CORREÇÃO: Agora retorna List<ProntuarioResponse> para bater com o Service
+    // Ex: GET /prontuarios/paciente/{id}/historico
     @GetMapping("/paciente/{pacienteId}/historico")
     public ResponseEntity<List<ProntuarioResponse>> obterHistorico(@PathVariable UUID pacienteId) {
         return ResponseEntity.ok(service.listarHistoricoPaciente(pacienteId));
     }
 
-    // --- 3. SALVAR EVOLUÇÃO (Escrever na folha) ---
-    // CORREÇÃO: Recebe 'ProntuarioRequest' (DTO) e não a Entidade
+    // --- 3. SALVAR EVOLUÇÃO (Escrever na folha durante a consulta) ---
+    // Ex: POST /prontuarios (Header: id-medico-logado)
     @PostMapping
     public ResponseEntity<ProntuarioResponse> salvar(
             @RequestBody @Valid ProntuarioRequest request,
-            @RequestHeader("id-medico-logado") UUID idMedicoLogado) {
+            @RequestHeader("id-medico-logado") UUID idMedicoLogado) { // Simulando segurança por enquanto
 
         var response = service.salvar(request, idMedicoLogado);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    // --- 4. SALVAR DADOS FIXOS (Alergias/Doenças) ---
+    // --- 4. SALVAR DADOS FIXOS (Alergias/Doenças Crônicas) ---
+    // Ex: POST /prontuarios/dados-fixos
     @PostMapping("/dados-fixos")
     public ResponseEntity<Void> salvarDadosFixos(@RequestBody @Valid DadosClinicosRequest request) {
         service.salvarDadosFixos(request);
         return ResponseEntity.ok().build();
     }
 
-    // --- 5. BUSCAR PRONTUÁRIO ESPECÍFICO ---
+    // --- 5. BUSCAR PRONTUÁRIO ESPECÍFICO (Se clicar num agendamento antigo) ---
+    // Ex: GET /prontuarios/agendamento/{idAgendamento}
     @GetMapping("/agendamento/{agendamentoId}")
     public ResponseEntity<ProntuarioResponse> buscarPorAgendamento(@PathVariable UUID agendamentoId) {
         return ResponseEntity.ok(service.buscarPorAgendamento(agendamentoId));
